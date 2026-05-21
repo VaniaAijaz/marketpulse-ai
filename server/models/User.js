@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema({
   name: { type: String },
   password: { type: String }, // if not using OTP login
 
-  // 💳 GLOBAL SAAS PLAN (IMPORTANT)
+ 
   plan: {
     type: String,
     enum: ["free", "basic", "pro", "enterprise"],

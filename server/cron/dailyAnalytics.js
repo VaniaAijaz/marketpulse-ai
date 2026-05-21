@@ -1,12 +1,13 @@
 const cron = require('node-cron');
 const Analytics = require('../models/Analytics');
-const Message = require('../models/Message');
+const Message = require('../models/MessageLog');
 const Shop = require('../models/Shop');
 
 async function runDailyAnalytics() {
   console.log('[Cron] Starting daily analytics...');
 
   const shops = await Shop.find({ active: true });
+
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   yesterday.setHours(0, 0, 0, 0);
@@ -16,13 +17,18 @@ async function runDailyAnalytics() {
 
   for (const shop of shops) {
     try {
-      // Sales aggregate karo
-      const sales = await Analytics.aggregateSales(shop._id, yesterday, endOfYesterday);
+      const sales = await Analytics.aggregateSales(
+        shop._id,
+        yesterday,
+        endOfYesterday
+      );
 
-      // Messages aggregate karo
-      const messages = await Analytics.aggregateMessages(shop._id, yesterday, endOfYesterday);
+      const messages = await Analytics.aggregateMessages(
+        shop._id,
+        yesterday,
+        endOfYesterday
+      );
 
-      // Save in Analytics collection
       await Analytics.create({
         shopId: shop._id,
         date: yesterday,
@@ -41,8 +47,8 @@ async function runDailyAnalytics() {
   console.log('[Cron] Daily analytics finished');
 }
 
-// Har raat 12 baje chalao: "0 0 *"
-cron.schedule('* *', runDailyAnalytics, {
+// ✅ FIXED CRON (DAILY 12 AM PAK TIME)
+cron.schedule('0 0 * * *', runDailyAnalytics, {
   timezone: "Asia/Karachi"
 });
 
