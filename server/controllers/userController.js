@@ -1,6 +1,8 @@
 const User = require('../models/User');
+const Shop = require('../models/Shop');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { attachShopToResponse } = require('./authRegisterController');
 
 // Generate JWT
 const generateToken = (userId) => {
@@ -17,12 +19,18 @@ const registerUser = async (req, res, next) => {
     const { phone, email, name, password, authProvider = 'otp' } = req.body;
 
     if (!phone) {
-      return res.status(400).json({ error: 'Phone number required' });
+      return res.status(400).json({ success: false, error: 'Phone number required' });
+    }
+    if (!email?.trim()) {
+      return res.status(400).json({ success: false, error: 'Email is required' });
     }
 
-    const userExists = await User.findOne({ phone });
-    if (userExists) {
-      return res.status(400).json({ error: 'User already exists' });
+    const emailNorm = email.trim().toLowerCase();
+    if (await User.findOne({ phone })) {
+      return res.status(400).json({ success: false, error: 'Phone already registered' });
+    }
+    if (await User.findOne({ email: emailNorm })) {
+      return res.status(400).json({ success: false, error: 'Email already registered' });
     }
 
     let hashedPassword;
@@ -32,22 +40,16 @@ const registerUser = async (req, res, next) => {
 
     const user = await User.create({
       phone,
-      email,
+      email: emailNorm,
       name,
       password: hashedPassword,
       authProvider,
-      isVerified: authProvider === 'otp' ? false : true
+      isVerified: authProvider === 'otp' ? false : true,
     });
 
     res.status(201).json({
       success: true,
-      data: {
-        _id: user._id,
-        phone: user.phone,
-        name: user.name,
-        plan: user.plan,
-        token: generateToken(user._id)
-      }
+      data: await attachShopToResponse(user),
     });
   } catch (err) {
     next(err);
@@ -59,11 +61,17 @@ const registerUser = async (req, res, next) => {
 // @access Public
 const loginUser = async (req, res, next) => {
   try {
-    const { phone, password } = req.body;
+    const { phone, email, password } = req.body;
 
-    const user = await User.findOne({ phone });
+    if (!phone && !email) {
+      return res.status(400).json({ success: false, error: 'Email or phone required' });
+    }
+
+    const user = email
+      ? await User.findOne({ email: email.trim().toLowerCase() })
+      : await User.findOne({ phone });
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
 
     if (!user.isActive) {
@@ -86,15 +94,7 @@ const loginUser = async (req, res, next) => {
 
     res.json({
       success: true,
-      data: {
-        _id: user._id,
-        phone: user.phone,
-        name: user.name,
-        email: user.email,
-        plan: user.plan,
-        isVerified: user.isVerified,
-        token: generateToken(user._id)
-      }
+      data: await attachShopToResponse(user),
     });
   } catch (err) {
     next(err);
@@ -106,11 +106,14 @@ const loginUser = async (req, res, next) => {
 // @access Private
 const getUserProfile = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');
+    const user = await User.findById(req.user._id).select('-password');
+    const shop = user?.shopId
+      ? await Shop.findById(user.shopId).select('-social.facebookPageToken')
+      : null;
 
     res.json({
       success: true,
-      data: user
+      data: { ...user.toObject(), shop },
     });
   } catch (err) {
     next(err);
@@ -122,7 +125,7 @@ const getUserProfile = async (req, res, next) => {
 // @access Private
 const updateUserProfile = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user._id);
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });

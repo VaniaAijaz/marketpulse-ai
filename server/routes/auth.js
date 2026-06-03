@@ -8,9 +8,11 @@ const {
   verifyOTP,
   resetUserUsage
 } = require('../controllers/userController');
+const { registerWithShop } = require('../controllers/authRegisterController');
 const auth = require('../middleware/auth');
 
 router.post('/register', registerUser);
+router.post('/register-with-shop', registerWithShop);
 router.post('/login', loginUser);
 router.post('/verify-otp', verifyOTP);
 router.post('/reset-usage', resetUserUsage); // cron route

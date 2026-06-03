@@ -29,7 +29,7 @@ const customerSchema = new mongoose.Schema({
   // Customer Profile
   segment: {
     type: String,
-    enum: ["new", "regular", "vip", "inactive", "blocked"],
+    enum: ["new", "active", "regular", "vip", "inactive", "blocked"],
     default: "new",
     index: true
   },
@@ -45,9 +45,9 @@ const customerSchema = new mongoose.Schema({
   },
 
   // Timeline
-  firstVisit: { type: Date, default: Date.now },
-  lastVisit: { type: Date, default: Date.now, index: true },
-  lastOrderDate: Date,
+  firstVisit:    { type: Date, default: Date.now },
+  lastVisit:     { type: Date, default: Date.now, index: true },
+  lastOrderDate: { type: Date, index: true },  // set only on paid orders
 
   // Communication
   whatsappOptIn: { type: Boolean, default: true },
@@ -68,40 +68,41 @@ const customerSchema = new mongoose.Schema({
 // Compound indexes for performance
 customerSchema.index({ shopId: 1, phone: 1 }, { unique: true });
 customerSchema.index({ shopId: 1, segment: 1, lastVisit: -1 });
-customerSchema.index({ shopId: 1, "stats.totalSpent": -1 });
+customerSchema.index({ shopId: 1, 'stats.totalSpent': -1 });
+customerSchema.index({ shopId: 1, lastOrderDate: 1 }); // for cron inactive sweep
 
-// Auto-update avgOrderValue before save
-customerSchema.pre('save', function(next) {
+// ── pre-save: recalculate avgOrderValue + segment ────────
+customerSchema.pre('save', function () {
+  // Keep avgOrderValue in sync
   if (this.stats.totalOrders > 0) {
     this.stats.avgOrderValue = this.stats.totalSpent / this.stats.totalOrders;
   }
 
-  // Auto-segment based on activity
-  const daysSinceLastVisit = (Date.now() - this.lastVisit) / (1000 * 60 * 60 * 24);
+  // Only recalculate segment when relevant fields changed
+  const tracked = ['isBlocked', 'stats.totalOrders', 'stats.totalSpent', 'lastOrderDate'];
+  const changed = this.isNew || tracked.some(f => this.isModified(f));
 
-  if (this.isBlocked) {
-    this.segment = "blocked";
-  } else if (daysSinceLastVisit > 30) {
-    this.segment = "inactive";
-  } else if (this.stats.totalSpent > 5000) {
-    this.segment = "vip";
-  } else if (this.stats.totalOrders > 5) {
-    this.segment = "regular";
-  } else {
-    this.segment = "new";
+  if (changed) {
+    const { calculateSegment } = require('../utils/customerSegment');
+    this.segment = calculateSegment({
+      isBlocked:     this.isBlocked,
+      totalOrders:   this.stats.totalOrders,
+      totalSpent:    this.stats.totalSpent,
+      lastOrderDate: this.lastOrderDate ?? this.lastVisit ?? null,
+    });
   }
-
-  next();
+  // No next() needed — promise-based hook
 });
 
-// Methods
-customerSchema.methods.updateActivity = function(orderAmount) {
-  this.stats.totalOrders += 1;
-  this.stats.totalSpent += orderAmount;
+// ── updateActivity: called on every paid order ───────────
+customerSchema.methods.updateActivity = function (orderAmount) {
+  this.stats.totalOrders    += 1;
+  this.stats.totalSpent     += orderAmount;
   this.stats.lastOrderAmount = orderAmount;
-  this.stats.visitCount += 1;
-  this.lastVisit = new Date();
-  this.lastOrderDate = new Date();
+  this.stats.visitCount     += 1;
+  this.lastVisit             = new Date();
+  this.lastOrderDate         = new Date();
+  // segment recalculated automatically in pre('save')
   return this.save();
 };
 

@@ -5,7 +5,8 @@ const {
   createOrder,
   getOrders,
   updateOrderStatus,
-  getOrderStats
+  getOrderStats,
+  simulatePayment
 } = require('../controllers/orderController');
 
 const auth = require('../middleware/auth');
@@ -21,6 +22,9 @@ router.use(auth);
 
 // Create order
 router.post('/', createOrder);
+
+// Simulate payment
+router.post('/:id/simulate-payment', simulatePayment);
 
 // Get orders for shop (filter + pagination)
 router.get('/shop/:shopId', getOrders);

@@ -8,13 +8,15 @@ const {
   getInactiveCustomers,
   getTopCustomers,
   addCustomerTag,
-  toggleBlockCustomer
+  toggleBlockCustomer,
+  backfillCustomerStats,
 } = require('../controllers/customerController');
 const auth = require('../middleware/auth');
 
 router.use(auth);
 
 router.post('/upsert', upsertCustomer);
+router.post('/backfill/:shopId', backfillCustomerStats);
 router.get('/:shopId', getCustomers);
 router.get('/inactive/:shopId', getInactiveCustomers);
 router.get('/top/:shopId', getTopCustomers);

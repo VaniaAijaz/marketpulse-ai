@@ -1,4 +1,8 @@
 const errorHandler = (err, req, res, next) => {
+  // Always log full stack in development
+  console.error('[ErrorHandler]', err.message);
+  console.error(err.stack);
+
   let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   let message = err.message;
 

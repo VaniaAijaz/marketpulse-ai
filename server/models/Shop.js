@@ -9,14 +9,15 @@ const shopSchema = new mongoose.Schema({
   },
 
   name: { type: String, required: true, trim: true },
+
   businessType: {
     type: String,
-    enum: ["grocery", "clothing", "pharmacy", "restaurant", "other"],
+    enum: ["grocery", "clothing", "pharmacy", "restaurant", "electronics", "other"],
     default: "other"
   },
+
   description: String,
 
-  // 📍 GEO LOCATION
   location: {
     type: {
       type: String,
@@ -28,7 +29,9 @@ const shopSchema = new mongoose.Schema({
       required: true
     },
     address: String,
-    city: String
+    city: String,
+    area: String,
+    street: String,
   },
 
   contact: {
@@ -50,7 +53,7 @@ const shopSchema = new mongoose.Schema({
       enum: ["fast", "balanced", "smart"],
       default: "balanced"
     },
-    systemPrompt: String // custom prompt store karne ke liye
+    systemPrompt: String
   },
 
   whatsapp: {
@@ -86,15 +89,16 @@ const shopSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
-// Indexes
+// indexes
 shopSchema.index({ location: "2dsphere" });
 shopSchema.index({ ownerId: 1, name: 1 }, { unique: true });
 
-// Daily reset hook - cron se call karna hai
-shopSchema.methods.resetDailyUsage = function() {
+// reset method
+shopSchema.methods.resetDailyUsage = function () {
   const today = new Date().toDateString();
   const lastReset = new Date(this.usage.lastResetDate).toDateString();
-  if (today!== lastReset) {
+
+  if (today !== lastReset) {
     this.usage.aiMessagesUsedToday = 0;
     this.usage.lastResetDate = new Date();
   }

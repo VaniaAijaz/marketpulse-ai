@@ -1,4 +1,6 @@
 const mongoose = require("mongoose");
+const { getDailyAiLimit } = require("../utils/aiLimits");
+const { safeTokenCount } = require("../utils/tokenUsage");
 
 const aiRequestLogSchema = new mongoose.Schema({
   shopId: {
@@ -17,7 +19,7 @@ const aiRequestLogSchema = new mongoose.Schema({
   endpoint: {
     type: String,
     required: true,
-    enum: ["generate_message", "generate_post", "analyze_sentiment", "suggest_reply"],
+  enum: ["generate_message", "generate_post", "analyze_sentiment", "suggest_reply", "recommend_products"],
     index: true
   },
 
@@ -68,9 +70,11 @@ const GEMINI_PRICING = {
 // Statics: Check daily limit
 aiRequestLogSchema.statics.checkDailyLimit = async function(shopId) {
   const Shop = mongoose.model("Shop");
-  const shop = await Shop.findById(shopId).select("plan dailyAiLimit");
+  const shop = await Shop.findById(shopId).select("plan limits");
 
   if (!shop) return { allowed: false, reason: "Shop not found" };
+
+  const dailyLimit = getDailyAiLimit(shop);
 
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
@@ -81,31 +85,42 @@ aiRequestLogSchema.statics.checkDailyLimit = async function(shopId) {
     createdAt: { $gte: startOfDay }
   });
 
-  const allowed = usedToday < shop.dailyAiLimit;
+  const allowed = usedToday < dailyLimit;
 
   return {
     allowed,
     usedToday,
-    limit: shop.dailyAiLimit,
-    remaining: Math.max(0, shop.dailyAiLimit - usedToday),
+    limit: dailyLimit,
+    remaining: Math.max(0, dailyLimit - usedToday),
     reason: allowed ? null : "Daily AI limit reached"
   };
 };
 
 // Statics: Log Gemini request
 aiRequestLogSchema.statics.logRequest = async function(data) {
-  const totalTokens = data.promptTokens + data.completionTokens;
-  
-  // Calculate cost for Gemini 1.5 Flash
-  const inputCost = (data.promptTokens / 1000) * GEMINI_PRICING.inputPer1k;
-  const outputCost = (data.completionTokens / 1000) * GEMINI_PRICING.outputPer1k;
-  const costPKR = inputCost + outputCost;
+  const promptTokens = safeTokenCount(data.promptTokens);
+  const completionTokens = safeTokenCount(data.completionTokens);
+  const totalTokens = promptTokens + completionTokens;
+
+  const inputCost = (promptTokens / 1000) * GEMINI_PRICING.inputPer1k;
+  const outputCost = (completionTokens / 1000) * GEMINI_PRICING.outputPer1k;
+  const rawCost = inputCost + outputCost;
+  const costPKR = Number.isFinite(rawCost)
+    ? parseFloat(rawCost.toFixed(6))
+    : 0;
 
   const log = await this.create({
-    ...data,
-    model: "gemini-1.5-flash",
+    shopId: data.shopId,
+    userId: data.userId,
+    endpoint: data.endpoint,
+    promptTokens,
+    completionTokens,
     totalTokens,
-    costPKR: parseFloat(costPKR.toFixed(6))
+    model: data.model || "gemini-2.5-flash",
+    costPKR,
+    status: data.status || "success",
+    responseTimeMs: safeTokenCount(data.responseTimeMs),
+    errorMessage: data.errorMessage,
   });
 
   return log;

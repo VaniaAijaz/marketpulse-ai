@@ -6,7 +6,7 @@ const Shop = require('../models/Shop');
 async function runDailyAnalytics() {
   console.log('[Cron] Starting daily analytics...');
 
-  const shops = await Shop.find({ active: true });
+  const shops = await Shop.find({ isActive: true });
 
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);

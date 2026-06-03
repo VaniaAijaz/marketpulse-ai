@@ -1,46 +1,100 @@
 const Product = require('../models/Product');
-const mongoose = require('mongoose');
+const Shop = require('../models/Shop');
+const { getInventorySummary } = require('../services/inventoryService');
+const { isCategoryAllowed } = require('../utils/businessCatalog');
+
+function normalizeStockPayload(body) {
+  if (body.quantity !== undefined) {
+    return { quantity: Math.max(0, parseInt(body.quantity, 10) || 0), operation: body.operation || 'set' };
+  }
+  if (body.stock !== undefined) {
+    const q = parseInt(body.stock, 10);
+    return { quantity: Math.max(0, Number.isNaN(q) ? 0 : q), operation: 'set' };
+  }
+  return null;
+}
+
+function enrichProduct(doc) {
+  const obj = doc.toObject ? doc.toObject({ virtuals: true }) : doc;
+  return {
+    ...obj,
+    isLowStock: doc.isLowStock ? doc.isLowStock() : (obj.stock?.quantity ?? 0) <= (obj.stock?.lowStockThreshold ?? 5),
+    aiEligible: (obj.stock?.quantity ?? 0) > 0 && obj.isActive !== false,
+  };
+}
 
 // @desc Create product
 // @route POST /api/products/create
-// @access Private
 const createProduct = async (req, res, next) => {
   try {
     const { shopId, name, category, pricing, stock, description, imageUrl } = req.body;
 
-    if (!shopId || !name || !pricing?.sellingPrice) {
-      return res.status(400).json({ error: 'shopId, name, and sellingPrice required' });
+    if (!shopId || !name?.trim() || pricing?.sellingPrice == null) {
+      return res.status(400).json({ success: false, error: 'shopId, name, and sellingPrice are required' });
     }
+
+    const shop = await Shop.findById(shopId).select('businessType ownerId');
+    if (!shop || shop.ownerId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, error: 'Forbidden' });
+    }
+    const cat = category || 'other';
+    if (!isCategoryAllowed(shop.businessType, cat)) {
+      return res.status(400).json({
+        success: false,
+        error: `Category "${cat}" is not valid for a ${shop.businessType} shop`,
+      });
+    }
+
+    const qty = Math.max(0, parseInt(stock?.quantity, 10) || 0);
 
     const product = await Product.create({
       shopId,
-      name,
-      category,
+      name: name.trim(),
+      category: category || 'other',
       description,
-      pricing,
-      stock,
-      imageUrl
+      pricing: {
+        costPrice: Number(pricing?.costPrice) || 0,
+        sellingPrice: Number(pricing.sellingPrice),
+        currency: pricing?.currency || 'PKR',
+      },
+      stock: {
+        quantity: qty,
+        lowStockThreshold: Math.max(0, parseInt(stock?.lowStockThreshold, 10) || 5),
+        unit: stock?.unit || 'pcs',
+      },
+      imageUrl,
     });
 
     res.status(201).json({
       success: true,
-      data: product
+      data: enrichProduct(product),
+      inventoryHint: qty > 0 ? 'ai_ready' : 'add_stock_for_ai',
     });
   } catch (err) {
     if (err.code === 11000) {
-      return res.status(400).json({ error: 'Product with this name already exists for this shop' });
+      return res.status(400).json({ success: false, error: 'Product with this name already exists for this shop' });
     }
     next(err);
   }
 };
 
+// @desc Inventory summary for AI readiness
+// @route GET /api/products/summary/:shopId
+const getInventorySummaryHandler = async (req, res, next) => {
+  try {
+    const summary = await getInventorySummary(req.params.shopId);
+    res.json({ success: true, data: summary });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // @desc Get all products for a shop
-// @route GET /api/products/:shopId?category=food&search=chai&lowStock=true&page=1&limit=20
-// @access Private
+// @route GET /api/products/shop/:shopId
 const getProducts = async (req, res, next) => {
   try {
     const { shopId } = req.params;
-    const { category, search, lowStock, page = 1, limit = 20 } = req.query;
+    const { category, search, lowStock, page = 1, limit = 100 } = req.query;
 
     const query = { shopId, isActive: true };
 
@@ -49,100 +103,118 @@ const getProducts = async (req, res, next) => {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
-        { 'aiMeta.keywords': { $in: [new RegExp(search, 'i')] } }
       ];
+    }
+
+    if (lowStock === 'true') {
+      query.$expr = {
+        $and: [
+          { $gt: ['$stock.quantity', 0] },
+          { $lte: ['$stock.quantity', '$stock.lowStockThreshold'] },
+        ],
+      };
     }
 
     const [products, total] = await Promise.all([
       Product.find(query)
-        .sort({ createdAt: -1 })
+        .sort({ 'stock.quantity': -1, createdAt: -1 })
         .skip((page - 1) * limit)
-        .limit(parseInt(limit)),
-      Product.countDocuments(query)
+        .limit(parseInt(limit, 10)),
+      Product.countDocuments(query),
     ]);
-
-    // Low stock filter client side kyunki method use hota hai
-    let filteredProducts = products;
-    if (lowStock === 'true') {
-      filteredProducts = products.filter(p => p.isLowStock());
-    }
 
     res.json({
       success: true,
       data: {
-        products: filteredProducts,
+        products: products.map(enrichProduct),
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page: parseInt(page, 10),
+          limit: parseInt(limit, 10),
           total,
-          pages: Math.ceil(total / limit)
-        }
-      }
+          pages: Math.ceil(total / limit) || 1,
+        },
+      },
     });
   } catch (err) {
     next(err);
   }
 };
 
-// @desc Get single product
-// @route GET /api/products/product/:id
-// @access Private
 const getProductById = async (req, res, next) => {
   try {
     const product = await Product.findById(req.params.id);
-
     if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
+      return res.status(404).json({ success: false, error: 'Product not found' });
     }
 
-    // Add virtual profitMargin to response
-    const productObj = product.toObject({ virtuals: true });
-
-    res.json({
-      success: true,
-      data: productObj
-    });
+    res.json({ success: true, data: enrichProduct(product) });
   } catch (err) {
     next(err);
   }
 };
 
-// @desc Update product
-// @route PUT /api/products/:id
-// @access Private
 const updateProduct = async (req, res, next) => {
   try {
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
+    const existing = await Product.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Product not found' });
+    }
+
+    const shop = await Shop.findById(existing.shopId).select('businessType ownerId');
+    if (!shop || shop.ownerId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, error: 'Forbidden' });
+    }
+
+    const updates = { ...req.body };
+    delete updates.shopId;
+    delete updates._id;
+
+    if (updates.category && !isCategoryAllowed(shop.businessType, updates.category)) {
+      return res.status(400).json({
+        success: false,
+        error: `Category "${updates.category}" is not valid for a ${shop.businessType} shop`,
+      });
+    }
+
+    if (updates.pricing?.sellingPrice != null) {
+      updates.pricing.sellingPrice = Number(updates.pricing.sellingPrice);
+    }
+    if (updates.stock?.quantity != null) {
+      updates.stock.quantity = Math.max(0, parseInt(updates.stock.quantity, 10) || 0);
+    }
+
+    const product = await Product.findByIdAndUpdate(req.params.id, updates, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
+      return res.status(404).json({ success: false, error: 'Product not found' });
     }
 
     res.json({
       success: true,
-      data: product
+      data: enrichProduct(product),
+      inventoryHint: product.stock.quantity > 0 ? 'ai_ready' : 'out_of_stock',
     });
   } catch (err) {
     next(err);
   }
 };
 
-// @desc Update stock quantity
-// @route PATCH /api/products/:id/stock
-// @access Private
 const updateStock = async (req, res, next) => {
   try {
-    const { quantity, operation = 'set' } = req.body;
-    // operation: 'set', 'add', 'subtract'
+    const parsed = normalizeStockPayload(req.body);
+    if (!parsed) {
+      return res.status(400).json({ success: false, error: 'quantity or stock is required' });
+    }
 
     const product = await Product.findById(req.params.id);
     if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
+      return res.status(404).json({ success: false, error: 'Product not found' });
     }
+
+    const { quantity, operation } = parsed;
 
     if (operation === 'add') {
       product.stock.quantity += quantity;
@@ -156,60 +228,57 @@ const updateStock = async (req, res, next) => {
 
     res.json({
       success: true,
-      data: product,
-      lowStock: product.isLowStock()
+      data: enrichProduct(product),
+      lowStock: product.isLowStock(),
+      aiEligible: product.stock.quantity > 0,
+      inventoryHint: product.stock.quantity > 0 ? 'ai_ready' : 'out_of_stock',
     });
   } catch (err) {
     next(err);
   }
 };
 
-// @desc Get low stock products
-// @route GET /api/products/lowstock/:shopId
-// @access Private
 const getLowStockProducts = async (req, res, next) => {
   try {
     const { shopId } = req.params;
 
-    const products = await Product.find({ shopId, isActive: true });
-
-    const lowStockProducts = products.filter(p => p.isLowStock());
+    const products = await Product.find({
+      shopId,
+      isActive: true,
+      $expr: {
+        $and: [
+          { $gt: ['$stock.quantity', 0] },
+          { $lte: ['$stock.quantity', '$stock.lowStockThreshold'] },
+        ],
+      },
+    }).sort({ 'stock.quantity': 1 });
 
     res.json({
       success: true,
-      count: lowStockProducts.length,
-      data: lowStockProducts
+      count: products.length,
+      data: products.map(enrichProduct),
     });
   } catch (err) {
     next(err);
   }
 };
 
-// @desc Toggle product active status
-// @route PATCH /api/products/:id/toggle
-// @access Private
 const toggleProductStatus = async (req, res, next) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
+      return res.status(404).json({ success: false, error: 'Product not found' });
     }
 
     product.isActive = !product.isActive;
     await product.save();
 
-    res.json({
-      success: true,
-      data: product
-    });
+    res.json({ success: true, data: enrichProduct(product) });
   } catch (err) {
     next(err);
   }
 };
 
-// @desc Delete product - soft delete
-// @route DELETE /api/products/:id
-// @access Private
 const deleteProduct = async (req, res, next) => {
   try {
     const product = await Product.findByIdAndUpdate(
@@ -219,12 +288,13 @@ const deleteProduct = async (req, res, next) => {
     );
 
     if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
+      return res.status(404).json({ success: false, error: 'Product not found' });
     }
 
     res.json({
       success: true,
-      message: 'Product deactivated successfully'
+      message: 'Product deactivated successfully',
+      data: { shopId: product.shopId },
     });
   } catch (err) {
     next(err);
@@ -233,11 +303,12 @@ const deleteProduct = async (req, res, next) => {
 
 module.exports = {
   createProduct,
+  getInventorySummaryHandler,
   getProducts,
   getProductById,
   updateProduct,
   updateStock,
   getLowStockProducts,
   toggleProductStatus,
-  deleteProduct
+  deleteProduct,
 };

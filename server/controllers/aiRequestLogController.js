@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const AiRequestLog = require('../models/AiRequestLog');
 
 // @desc    Check remaining AI limit for today

@@ -14,6 +14,13 @@ const orderSchema = new mongoose.Schema({
     index: true
   },
 
+  customerPhone: {
+    type: String,
+    index: true
+  },
+
+  customerName: String,
+
   orderNumber: {
     type: String,
     unique: true,
@@ -52,14 +59,30 @@ const orderSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ["pending", "confirmed", "preparing", "ready", "delivered", "cancelled"],
+    enum: ["pending", "confirmed", "completed", "cancelled"],
     default: "pending",
     index: true
   },
 
+  // Cancellation
+  cancelReason: String,
+
+  // Timestamps per state
+  confirmedAt:  Date,
+  completedAt:  Date,
+  cancelledAt:  Date,
+
+  // Immutable audit trail — one entry per transition
+  statusHistory: [{
+    from:      { type: String },
+    to:        { type: String },
+    changedAt: { type: Date, default: Date.now },
+    note:      { type: String },
+  }],
+
   notes: String,
   deliveryAddress: String,
-  deliveredAt: Date
+  deliveredAt: Date   // kept for backward compat
 
 }, { timestamps: true });
 
@@ -69,39 +92,22 @@ orderSchema.index({ shopId: 1, status: 1 });
 orderSchema.index({ customerId: 1, createdAt: -1 });
 
 // Auto generate order number before save
-orderSchema.pre('save', async function() {
+orderSchema.pre('save', async function () {
   if (!this.orderNumber) {
     const count = await mongoose.model('Order').countDocuments({ shopId: this.shopId });
     this.orderNumber = `ORD-${Date.now()}-${count + 1}`;
   }
-  
+
   // Calculate item totals
   this.items.forEach(item => {
     item.total = item.qty * item.price;
   });
 });
 
-// Method: Update customer stats after order
+// Method: complete order via state machine (replaces markDelivered)
 orderSchema.methods.markDelivered = async function() {
-  this.status = 'delivered';
-  this.deliveredAt = new Date();
-  
-  if (this.payment.status !== 'paid') {
-    this.payment.status = 'paid';
-  }
-
-  await this.save();
-
-  // Update customer stats
-  if (this.customerId) {
-    const Customer = mongoose.model('Customer');
-    const customer = await Customer.findById(this.customerId);
-    if (customer) {
-      await customer.updateActivity(this.pricing.total);
-    }
-  }
-
-  return this;
+  const { transitionOrderStatus, STATUS } = require('../utils/orderStateMachine');
+  return transitionOrderStatus(this, STATUS.COMPLETED);
 };
 
 module.exports = mongoose.model("Order", orderSchema);

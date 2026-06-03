@@ -218,6 +218,72 @@ const toggleBlockCustomer = async (req, res, next) => {
   }
 };
 
+// @desc  Recalculate stats for all customers of a shop from actual orders
+// @route POST /api/customers/backfill/:shopId
+// @access Private
+const backfillCustomerStats = async (req, res, next) => {
+  try {
+    const { shopId } = req.params;
+    const Order = require('mongoose').model('Order');
+    const { calculateSegment } = require('../utils/customerSegment');
+
+    // Aggregate all paid orders per customer
+    const stats = await Order.aggregate([
+      {
+        $match: {
+          shopId: require('mongoose').Types.ObjectId.createFromHexString(shopId),
+          'payment.status': 'paid',
+          customerId: { $exists: true, $ne: null },
+        },
+      },
+      {
+        $group: {
+          _id: '$customerId',
+          totalOrders:     { $sum: 1 },
+          totalSpent:      { $sum: '$pricing.total' },
+          lastOrderAmount: { $last: '$pricing.total' },
+          lastOrderDate:   { $max: '$createdAt' },
+          visitCount:      { $sum: 1 },
+        },
+      },
+    ]);
+
+    let updated = 0;
+    for (const s of stats) {
+      const avgOrderValue = s.totalOrders > 0 ? s.totalSpent / s.totalOrders : 0;
+
+      // Fetch current doc to check isBlocked (never override blocked)
+      const existing = await Customer.findById(s._id).select('isBlocked segment').lean();
+      if (!existing) continue;
+
+      const newSegment = calculateSegment({
+        isBlocked:     existing.isBlocked,
+        totalOrders:   s.totalOrders,
+        totalSpent:    s.totalSpent,
+        lastOrderDate: s.lastOrderDate,
+      });
+
+      await Customer.findByIdAndUpdate(s._id, {
+        $set: {
+          'stats.totalOrders':     s.totalOrders,
+          'stats.totalSpent':      s.totalSpent,
+          'stats.avgOrderValue':   avgOrderValue,
+          'stats.lastOrderAmount': s.lastOrderAmount,
+          'stats.visitCount':      s.visitCount,
+          lastVisit:               s.lastOrderDate,
+          lastOrderDate:           s.lastOrderDate,
+          segment:                 newSegment,
+        },
+      });
+      updated++;
+    }
+
+    res.json({ success: true, message: `Backfilled ${updated} customers`, updated });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   upsertCustomer,
   getCustomers,
@@ -226,5 +292,6 @@ module.exports = {
   getInactiveCustomers,
   getTopCustomers,
   addCustomerTag,
-  toggleBlockCustomer
+  toggleBlockCustomer,
+  backfillCustomerStats,
 };

@@ -3,7 +3,27 @@ const mongoose = require("mongoose");
 const userSchema = new mongoose.Schema({
   // 👤 IDENTITY (ONLY AUTH RELATED)
   phone: { type: String, required: true, unique: true, index: true },
-  email: { type: String },
+  email: {
+    type: String,
+    unique: true,
+    sparse: true,
+    lowercase: true,
+    trim: true,
+  },
+
+  /** One shop per account — set at registration */
+  shopId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Shop',
+    unique: true,
+    sparse: true,
+  },
+
+  /** Locked at registration — drives inventory categories & AI */
+  businessType: {
+    type: String,
+    enum: ['grocery', 'clothing', 'pharmacy', 'restaurant', 'electronics', 'other'],
+  },
 
   // 🧑 BASIC PROFILE
   name: { type: String },

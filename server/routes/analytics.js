@@ -5,16 +5,18 @@ const {
   getAnalyticsRange,
   getDashboardSummary,
   regenerateAnalytics,
-  getKPIMetrics
+  getKPIMetrics,
+  getAnalyticsInsights,
 } = require('../controllers/analyticsController');
 const auth = require('../middleware/auth');
 
 router.use(auth);
 
-router.get('/today/:shopId', getTodayAnalytics);
-router.get('/range/:shopId', getAnalyticsRange);
-router.get('/summary/:shopId', getDashboardSummary);
-router.get('/kpi/:shopId', getKPIMetrics);
-router.post('/regenerate', regenerateAnalytics);
+router.get('/today/:shopId',    getTodayAnalytics);
+router.get('/range/:shopId',    getAnalyticsRange);
+router.get('/summary/:shopId',  getDashboardSummary);
+router.get('/kpi/:shopId',      getKPIMetrics);
+router.post('/regenerate',      regenerateAnalytics);
+router.post('/insights/:shopId', getAnalyticsInsights);
 
 module.exports = router;

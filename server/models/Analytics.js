@@ -130,9 +130,9 @@ analyticsSchema.statics.aggregateSales = async function(shopId, start, end) {
     {
       $group: {
         _id: null,
-        totalRevenue: { $sum: "$totalAmount" },
+        totalRevenue: { $sum: "$pricing.total" },
         totalOrders: { $sum: 1 },
-        avgOrderValue: { $avg: "$totalAmount" }
+        avgOrderValue: { $avg: "$pricing.total" }
       }
     }
   ]);
@@ -164,6 +164,44 @@ analyticsSchema.statics.aggregateMessages = async function(shopId, start, end) {
    ? ((data.messagesRead / data.messagesDelivered) * 100).toFixed(2)
     : 0;
   return data;
+};
+
+analyticsSchema.statics.aggregateCustomers = async function(shopId, start, end) {
+  const Customer = mongoose.model('Customer');
+
+  const [newCustomers, returningCustomers, activeCustomers] = await Promise.all([
+    // Use firstVisit (always explicitly set on create) — createdAt is unreliable with upserts
+    Customer.countDocuments({ shopId, firstVisit: { $gte: start, $lte: end } }),
+    Customer.countDocuments({ shopId, firstVisit: { $lt: start }, lastVisit: { $gte: start } }),
+    Customer.countDocuments({ shopId, lastVisit: { $gte: start, $lte: end } }),
+  ]);
+
+  // Top customer by spend
+  const top = await Customer.findOne({ shopId })
+    .sort({ 'stats.totalSpent': -1 })
+    .select('_id stats.totalSpent');
+
+  return {
+    newCustomers,
+    returningCustomers,
+    activeCustomers,
+    churnedCustomers: 0,
+    topCustomerId: top?._id || null,
+    topCustomerSpent: top?.stats?.totalSpent || 0,
+  };
+};
+
+analyticsSchema.statics.aggregatePosts = async function(shopId, start, end) {
+  try {
+    const Post = mongoose.model('Post');
+    const [created, published] = await Promise.all([
+      Post.countDocuments({ shopId, createdAt: { $gte: start, $lte: end } }),
+      Post.countDocuments({ shopId, status: 'published', publishedAt: { $gte: start, $lte: end } }),
+    ]);
+    return { postsCreated: created, postsPublished: published, fbReach: 0, fbEngagement: 0, fbLikes: 0, fbComments: 0, fbShares: 0 };
+  } catch {
+    return { postsCreated: 0, postsPublished: 0, fbReach: 0, fbEngagement: 0, fbLikes: 0, fbComments: 0, fbShares: 0 };
+  }
 };
 
 // Virtual for dashboard summary

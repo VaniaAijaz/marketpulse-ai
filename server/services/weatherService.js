@@ -35,10 +35,13 @@ const fetchAndSaveWeather = async (shopId) => {
 };
 
 const getLatestWeather = async (shopId) => {
-  const weather = await WeatherSnapshot.findOne({ shopId })
+  let weather = await WeatherSnapshot.findOne({ shopId })
    .sort({ fetchedAt: -1 });
 
-  if (!weather) throw new Error('No weather data found');
+  if (!weather) {
+    // Agar DB me nahi hai to abhi fetch karke banao
+    weather = await fetchAndSaveWeather(shopId);
+  }
   return weather;
 };
 
