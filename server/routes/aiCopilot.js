@@ -79,9 +79,17 @@ CURRENT STORE DATA (real-time):
 
 SHOPKEEPER'S QUESTION: ${question}
 
-Answer in Hinglish (Urdu + English mix). Be specific, practical, and brief (max 150 words). Reference the actual numbers above where relevant.`;
+Instructions:
+- Answer in Hinglish (mix of Urdu and English — natural Pakistani shop owner tone)
+- DO NOT start with any greeting, salutation, or shop name introduction — go straight to the answer
+- Give a COMPLETE, precise answer — do not cut short
+- Use the actual numbers from the data above when relevant
+- Be specific and actionable, not generic
+- No markdown formatting — plain readable text only
+- If the question has multiple parts, answer all parts
+- Write at least 150 words, complete every point fully`;
 
-  const result = await generateMessage({ shopId, prompt });
+  const result = await generateMessage({ shopId, prompt, raw: true });
   res.json({ success: true, data: { answer: result.message, context: ctx } });
 }));
 
@@ -106,16 +114,34 @@ STORE DATA:
 - Customers — VIP: ${ctx.customers.vip || 0}, Active: ${ctx.customers.active || 0}, New: ${ctx.customers.new || 0}, Inactive: ${ctx.customers.inactive || 0}
 - Inventory — In Stock: ${ctx.inventory.inStock}, Low Stock: ${ctx.inventory.lowStock}, Out of Stock: ${ctx.inventory.outOfStock}
 
-Generate a structured ${period} business report in Hinglish with these sections:
-1. 📊 Sales Summary
-2. 👥 Customer Overview
-3. 📦 Inventory Status
-4. ⚠️ Key Issues (if any)
-5. ✅ Recommended Actions (3 specific, actionable)
+Generate a clean ${period} business report in Hinglish (Urdu + English mix). 
 
-Keep each section to 2-3 sentences. Be practical and specific to the numbers above.`;
+CRITICAL RULES:
+- NO greetings, no shop name intro, no "MarketPulse AI" — start directly with the report
+- NO markdown — no ** bold **, no # headers, no --- lines, no bullet symbols
+- Use plain section labels followed by a colon: SALES SUMMARY:
+- Each section: 2-3 complete sentences, specific to the numbers above
+- Complete every section fully — do not truncate
 
-  const result = await generateMessage({ shopId, prompt });
+REPORT FORMAT:
+SALES SUMMARY:
+[Write here]
+
+CUSTOMER OVERVIEW:
+[Write here]
+
+INVENTORY STATUS:
+[Write here]
+
+KEY ISSUES:
+[Write here — or write "Koi badi masla nahi" if none]
+
+ACTION POINTS:
+1. [specific action with numbers]
+2. [specific action with numbers]
+3. [specific action with numbers]`;
+
+  const result = await generateMessage({ shopId, prompt, raw: true });
   res.json({ success: true, data: { report: result.message, period, generatedAt: new Date(), context: ctx } });
 }));
 
@@ -139,18 +165,22 @@ router.post('/copilot/advise', asyncHandler(async (req, res) => {
 STORE PERFORMANCE DATA:
 - Revenue 7d: Rs.${ctx.revenue7d} | Revenue 30d: Rs.${ctx.revenue30d}
 - Orders 7d: ${ctx.orders7d} | Cancellation rate: ${ctx.cancelRate}%
-- VIP customers: ${ctx.customers.vip || 0} | Inactive: ${ctx.customers.inactive || 0} | New: ${ctx.customers.new || 0}
+- VIP customers: ${ctx.customers.vip || 0} | Active: ${ctx.customers.active || 0} | Inactive: ${ctx.customers.inactive || 0} | New: ${ctx.customers.new || 0}
 - Low stock items: ${ctx.inventory.lowStock} | Out of stock: ${ctx.inventory.outOfStock}
 
 QUESTION: ${question}
 
-Give 3-5 specific, actionable recommendations in Hinglish. Each point should:
-- Start with an action verb
-- Be specific to the numbers shown above
+Instructions:
+- Answer in Hinglish (natural Urdu + English mix for Pakistani shopkeeper)
+- DO NOT start with greetings, shop name, or "MarketPulse AI" introduction
+- Give 4-5 COMPLETE, specific, actionable recommendations
+- Each point must directly reference the actual numbers above
+- NO markdown — no ** bold **, no # symbols, plain text only
+- Start each point with a number and action verb
 - Be realistic for a small Pakistani retail shop
-Format as numbered list.`;
+- Complete every single point — do not stop mid-sentence or cut short`;
 
-  const result = await generateMessage({ shopId, prompt });
+  const result = await generateMessage({ shopId, prompt, raw: true });
   res.json({ success: true, data: { advice: result.message, topic, context: ctx } });
 }));
 

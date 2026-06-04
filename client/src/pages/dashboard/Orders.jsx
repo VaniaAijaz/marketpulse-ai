@@ -5,111 +5,100 @@ import useAuthStore from '../../store/useAuthStore'
 import useUIStore from '../../store/useUIStore'
 import useAppStore from '../../store/useAppStore'
 
-// Analytics-matching color palette
-const C = { blue: '#1390ff', purple: '#7c3aed', cyan: '#00d4ff', green: '#22c55e', amber: '#f59e0b', pink: '#f43f5e', teal: '#14b8a6', violet: '#8b5cf6' }
+const P = {
+  card: '#000000', border: 'rgba(255,255,255,0.08)',
+  text: '#ffffff', muted: 'rgba(255,255,255,0.5)', dim: 'rgba(255,255,255,0.25)',
+  blue: '#3b82f6', indigo: '#6366f1', violet: '#8b5cf6', emerald: '#10b981',
+  slate: '#94a3b8', rose: '#f43f5e', amber: '#f59e0b', cyan: '#06b6d4',
+}
+const FONT = "'Inter','Segoe UI',system-ui,sans-serif"
+const R = '6px', R2 = '8px'
 
 const STATUS_CFG = {
-  pending:   { color: C.amber,  bg: C.amber  + '18', border: C.amber  + '40', icon: 'schedule',      label: 'Pending'   },
-  confirmed: { color: C.blue,   bg: C.blue   + '18', border: C.blue   + '40', icon: 'verified',      label: 'Confirmed' },
-  completed: { color: C.green,  bg: C.green  + '18', border: C.green  + '40', icon: 'check_circle',  label: 'Completed' },
-  cancelled: { color: C.pink,   bg: C.pink   + '18', border: C.pink   + '40', icon: 'cancel',        label: 'Cancelled' },
-  // legacy aliases
-  delivered: { color: C.green,  bg: C.green  + '18', border: C.green  + '40', icon: 'check_circle',  label: 'Completed' },
+  pending:   { color: P.amber,   icon: 'schedule',     label: 'Pending'   },
+  confirmed: { color: P.blue,    icon: 'verified',     label: 'Confirmed' },
+  completed: { color: P.emerald, icon: 'check_circle', label: 'Completed' },
+  cancelled: { color: P.rose,    icon: 'cancel',       label: 'Cancelled' },
+  delivered: { color: P.emerald, icon: 'check_circle', label: 'Completed' },
 }
-
-// Valid next statuses per current status (mirrors state machine)
-const NEXT_STATUSES = {
+const NEXT = {
   pending:   ['confirmed', 'cancelled'],
   confirmed: ['completed', 'cancelled'],
-  completed: [],
-  cancelled: [],
-  delivered: [],
+  completed: [], cancelled: [], delivered: [],
 }
 
 function StatusBadge({ status }) {
   const cfg = STATUS_CFG[status] || STATUS_CFG.pending
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border"
-      style={{ color: cfg.color, background: cfg.bg, borderColor: cfg.border }}>
-      <span className="material-symbols-outlined text-[11px]">{cfg.icon}</span>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontFamily: FONT, fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em', padding: '3px 9px', borderRadius: '4px', color: cfg.color, background: cfg.color + '15', border: `1px solid ${cfg.color}30` }}>
       {cfg.label}
     </span>
   )
 }
 
 function OrderRow({ order, idx, onStatusChange, isUpdating, onSimulatePayment }) {
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuOpen, setMenuOpen]         = useState(false)
   const [cancelReason, setCancelReason] = useState('')
-  const [showCancelInput, setShowCancelInput] = useState(false)
-  const options = NEXT_STATUSES[order.status] || []
+  const [showCancel, setShowCancel]     = useState(false)
+  const options = NEXT[order.status] || []
 
   const handleAction = (s) => {
-    if (s === 'cancelled') {
-      setShowCancelInput(true)
-      setMenuOpen(false)
-    } else {
-      onStatusChange(order._id, s)
-      setMenuOpen(false)
-    }
-  }
-
-  const confirmCancel = () => {
-    onStatusChange(order._id, 'cancelled', { reason: cancelReason })
-    setShowCancelInput(false)
-    setCancelReason('')
+    if (s === 'cancelled') { setShowCancel(true); setMenuOpen(false) }
+    else { onStatusChange(order._id, s); setMenuOpen(false) }
   }
 
   return (
     <>
-      <motion.tr
-        initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.03 }}
-        className="border-b transition-colors group"
-        style={{ borderColor: 'rgba(255,255,255,0.05)' }}
-        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-      >
-        <td className="px-5 py-4">
-          <p className="text-[13px] text-white font-bold font-mono">#{order.orderNumber || order._id?.slice(-6)?.toUpperCase()}</p>
-          <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{new Date(order.createdAt).toLocaleString()}</p>
+      <motion.tr initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * .025 }}
+        style={{ borderBottom: `1px solid ${P.border}`, transition: 'background .1s' }}
+        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.025)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+        <td style={{ padding: '12px 16px' }}>
+          <p style={{ fontFamily: "'Courier New',monospace", fontSize: '12px', fontWeight: 700, color: P.text, margin: 0 }}>
+            #{order.orderNumber?.slice(-8) || order._id?.slice(-6)?.toUpperCase()}
+          </p>
+          <p style={{ fontFamily: FONT, fontSize: '10px', color: P.dim, margin: '2px 0 0' }}>
+            {new Date(order.createdAt).toLocaleString()}
+          </p>
         </td>
-        <td className="px-5 py-4 hidden md:table-cell">
-          <p className="text-[12px] font-mono" style={{ color: 'rgba(255,255,255,0.5)' }}>{order.customerPhone || '—'}</p>
+        <td style={{ padding: '12px 16px' }} className="hidden md:table-cell">
+          <p style={{ fontFamily: "'Courier New',monospace", fontSize: '11px', color: P.muted, margin: 0 }}>
+            {order.customerPhone || '—'}
+          </p>
+          {order.customerName && <p style={{ fontFamily: FONT, fontSize: '10px', color: P.dim, margin: '2px 0 0' }}>{order.customerName}</p>}
         </td>
-        <td className="px-5 py-4 hidden lg:table-cell">
-          <p className="text-[11px] max-w-[180px] truncate" style={{ color: 'rgba(255,255,255,0.45)' }}>
+        <td style={{ padding: '12px 16px' }} className="hidden lg:table-cell">
+          <p style={{ fontFamily: FONT, fontSize: '11px', color: P.muted, margin: 0, maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {(order.items || []).map(i => `${i.name} ×${i.qty || i.quantity}`).join(', ') || '—'}
           </p>
         </td>
-        <td className="px-5 py-4 text-right">
-          <span className="text-[14px] font-bold" style={{ color: C.green }}>
+        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+          <span style={{ fontFamily: FONT, fontSize: '13px', fontWeight: 700, color: P.emerald }}>
             Rs.{(order.pricing?.total ?? order.totalAmount)?.toLocaleString() || '0'}
           </span>
         </td>
-        <td className="px-5 py-4 text-center">
+        <td style={{ padding: '12px 16px', textAlign: 'center' }}>
           <StatusBadge status={order.status} />
         </td>
-        <td className="px-5 py-4 text-center relative">
+        <td style={{ padding: '12px 16px', textAlign: 'center', position: 'relative' }}>
           {options.length > 0 ? (
-            <div className="relative inline-block">
-              <button onClick={() => setMenuOpen(o => !o)} disabled={isUpdating}
-                className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors"
-                style={{ color: 'rgba(255,255,255,0.4)' }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#fff' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)' }}>
-                <span className="material-symbols-outlined text-[18px]">more_horiz</span>
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <button onClick={() => setMenuOpen(v => !v)} disabled={isUpdating}
+                style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: R, background: 'none', border: `1px solid transparent`, cursor: 'pointer', color: P.muted, transition: 'all .12s' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor = P.border; e.currentTarget.style.color = P.text }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.color = P.muted }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>more_horiz</span>
               </button>
               <AnimatePresence>
                 {menuOpen && (
-                  <motion.div initial={{ opacity: 0, scale: 0.95, y: -5 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-                    className="absolute right-0 top-8 z-20 rounded-xl p-1.5 shadow-2xl min-w-[165px]"
-                    style={{ background: '#0d1b35', border: '1px solid rgba(255,255,255,0.12)' }}>
+                  <motion.div initial={{ opacity: 0, scale: .95, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: .95 }}
+                    style={{ position: 'absolute', right: 0, top: '32px', zIndex: 20, background: '#0a0a0a', border: `1px solid ${P.border}`, borderRadius: R2, padding: '4px', minWidth: '160px', boxShadow: '0 16px 40px rgba(0,0,0,.7)' }}>
                     {order.status === 'pending' && order.payment?.status === 'pending' && (
                       <button onClick={() => { onSimulatePayment(order); setMenuOpen(false) }}
-                        className="w-full text-left px-3 py-2 rounded-lg text-[12px] font-bold transition-colors flex items-center gap-2"
-                        style={{ color: C.blue }}
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 10px', borderRadius: R, fontFamily: FONT, fontSize: '12px', fontWeight: 600, color: P.blue, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
                         onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                        <span className="material-symbols-outlined text-[14px]">account_balance_wallet</span>
+                        onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>account_balance_wallet</span>
                         Pay & Simulate
                       </button>
                     )}
@@ -117,11 +106,10 @@ function OrderRow({ order, idx, onStatusChange, isUpdating, onSimulatePayment })
                       const cfg = STATUS_CFG[s]
                       return (
                         <button key={s} onClick={() => handleAction(s)}
-                          className="w-full text-left px-3 py-2 rounded-lg text-[12px] font-medium transition-colors flex items-center gap-2 capitalize"
-                          style={{ color: cfg?.color || '#fff' }}
+                          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '7px', padding: '7px 10px', borderRadius: R, fontFamily: FONT, fontSize: '12px', fontWeight: 500, color: cfg?.color || P.text, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
                           onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                          <span className="material-symbols-outlined text-[14px]">{cfg?.icon}</span>
+                          onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>{cfg?.icon}</span>
                           Mark {cfg?.label}
                         </button>
                       )
@@ -131,32 +119,29 @@ function OrderRow({ order, idx, onStatusChange, isUpdating, onSimulatePayment })
               </AnimatePresence>
             </div>
           ) : (
-            <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.2)' }}>—</span>
+            <span style={{ fontFamily: FONT, fontSize: '11px', color: P.dim }}>—</span>
           )}
         </td>
       </motion.tr>
 
-      {/* Inline cancel reason input */}
+      {/* Cancel reason row */}
       <AnimatePresence>
-        {showCancelInput && (
+        {showCancel && (
           <motion.tr initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ background: C.pink + '08', borderBottom: `1px solid ${C.pink}20` }}>
-            <td colSpan={6} className="px-5 py-3">
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-[16px]" style={{ color: C.pink }}>cancel</span>
+            style={{ background: P.rose + '06', borderBottom: `1px solid ${P.rose}15` }}>
+            <td colSpan={6} style={{ padding: '10px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '15px', color: P.rose }}>cancel</span>
                 <input value={cancelReason} onChange={e => setCancelReason(e.target.value)}
                   placeholder="Cancellation reason (optional)..."
-                  className="flex-1 px-3 py-1.5 rounded-lg text-[12px] text-white placeholder:text-white/20 focus:outline-none"
-                  style={{ background: 'rgba(0,0,0,0.3)', border: `1px solid ${C.pink}30` }}
-                  onKeyDown={e => e.key === 'Enter' && confirmCancel()} />
-                <button onClick={confirmCancel}
-                  className="px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors"
-                  style={{ color: C.pink, background: C.pink + '20', border: `1px solid ${C.pink}30` }}>
-                  Confirm Cancel
+                  style={{ flex: 1, fontFamily: FONT, fontSize: '12px', padding: '6px 10px', borderRadius: R, background: 'rgba(0,0,0,0.4)', border: `1px solid ${P.rose}25`, color: P.text, outline: 'none' }}
+                  onKeyDown={e => e.key === 'Enter' && (onStatusChange(order._id, 'cancelled', { reason: cancelReason }), setShowCancel(false))} />
+                <button onClick={() => { onStatusChange(order._id, 'cancelled', { reason: cancelReason }); setShowCancel(false) }}
+                  style={{ fontFamily: FONT, fontSize: '11px', fontWeight: 600, padding: '6px 12px', borderRadius: R, background: P.rose + '15', border: `1px solid ${P.rose}30`, color: P.rose, cursor: 'pointer' }}>
+                  Confirm
                 </button>
-                <button onClick={() => setShowCancelInput(false)}
-                  className="px-3 py-1.5 rounded-lg text-[11px] transition-colors"
-                  style={{ color: 'rgba(255,255,255,0.4)' }}>
+                <button onClick={() => setShowCancel(false)}
+                  style={{ fontFamily: FONT, fontSize: '11px', padding: '6px 10px', borderRadius: R, background: 'none', border: 'none', color: P.dim, cursor: 'pointer' }}>
                   Dismiss
                 </button>
               </div>
@@ -169,553 +154,376 @@ function OrderRow({ order, idx, onStatusChange, isUpdating, onSimulatePayment })
 }
 
 export default function Orders() {
-  const activeShop = useAuthStore((s) => s.activeShop)
+  const activeShop     = useAuthStore((s) => s.activeShop)
   const setActiveModal = useUIStore((s) => s.setActiveModal)
-  const addEvent = useAppStore((s) => s.addEvent)
+  const addEvent       = useAppStore((s) => s.addEvent)
   const [statusFilter, setStatusFilter] = useState('')
-  const [page, setPage] = useState(1)
+  const [page, setPage]                 = useState(1)
   const [simulatingOrder, setSimulatingOrder] = useState(null)
 
-  const { data, isLoading } = useOrdersByShop(activeShop?._id, {
-    page, limit: 12, status: statusFilter || undefined,
-  })
-  const { data: statsData } = useOrderStats(activeShop?._id)
-  const updateStatusMutation = useUpdateOrderStatus()
+  const { data, isLoading }    = useOrdersByShop(activeShop?._id, { page, limit: 12, status: statusFilter || undefined })
+  const { data: statsData }    = useOrderStats(activeShop?._id)
+  const updateStatusMut        = useUpdateOrderStatus()
 
-  const orders = data?.data?.orders || []
+  const orders     = data?.data?.orders     || []
   const pagination = data?.data?.pagination || {}
-  const stats = statsData?.data || {}
+  const stats      = statsData?.data        || {}
 
   const handleStatusChange = (orderId, status, opts = {}) => {
-    updateStatusMutation.mutate({ orderId, status, ...opts }, {
-      onSuccess: () => addEvent({ type: 'shopping_cart', message: `Order #${orderId.slice(-6).toUpperCase()} marked as ${status}.` }),
+    updateStatusMut.mutate({ orderId, status, ...opts }, {
+      onSuccess: () => addEvent({ type: 'shopping_cart', message: `Order marked as ${status}.` }),
     })
   }
 
-  const kpis = [
-    { label: 'Total Revenue',   value: `Rs.${(stats.totalRevenue || 0).toLocaleString()}`, icon: 'payments',      color: C.green  },
-    { label: 'Total Orders',    value: stats.totalOrders  || 0,                             icon: 'shopping_bag',  color: C.blue   },
-    { label: 'Pending',         value: stats.pendingOrders || 0,                            icon: 'schedule',      color: C.amber  },
-    { label: 'Avg Order Value', value: `Rs.${Math.round(stats.avgOrderValue || 0).toLocaleString()}`, icon: 'analytics', color: C.purple },
+  const KPIS = [
+    { label: 'Revenue',   value: `Rs.${(stats.totalRevenue || 0).toLocaleString()}`, icon: 'payments',     color: P.emerald },
+    { label: 'Orders',    value: stats.totalOrders   || 0,                           icon: 'shopping_bag', color: P.blue    },
+    { label: 'Pending',   value: stats.pendingOrders || 0,                           icon: 'schedule',     color: P.amber   },
+    { label: 'Avg Order', value: `Rs.${Math.round(stats.avgOrderValue || 0).toLocaleString()}`, icon: 'analytics', color: P.violet },
   ]
 
+  const FILTERS = [
+    { val: '',          label: 'All'       },
+    { val: 'pending',   label: 'Pending'   },
+    { val: 'confirmed', label: 'Confirmed' },
+    { val: 'completed', label: 'Completed' },
+    { val: 'cancelled', label: 'Cancelled' },
+  ]
+
+  if (!activeShop) return (
+    <div style={{ textAlign: 'center', padding: '80px 24px', fontFamily: FONT }}>
+      <span className="material-symbols-outlined" style={{ fontSize: '44px', color: 'rgba(255,255,255,0.08)', display: 'block', marginBottom: '12px' }}>receipt_long</span>
+      <p style={{ fontWeight: 700, fontSize: '16px', color: P.text, margin: '0 0 5px' }}>No Active Shop</p>
+      <p style={{ fontSize: '13px', color: P.muted, margin: 0 }}>Select a shop to view orders.</p>
+    </div>
+  )
+
   return (
-    <div>
+    <div style={{ fontFamily: FONT }}>
+
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h2 className="font-display text-[28px] font-black text-white tracking-tight">Order Ledger</h2>
-          <p className="text-[12px] text-on-surface-variant mt-1">Transaction history across your network nodes</p>
+          <h2 style={{ fontFamily: FONT, fontWeight: 800, fontSize: '24px', color: P.text, margin: 0 }}>Order Ledger</h2>
+          <p style={{ fontFamily: FONT, fontSize: '12px', color: P.muted, margin: '4px 0 0' }}>
+            {activeShop.name} — Transaction history
+          </p>
         </div>
-        <button
-          onClick={() => setActiveModal('create-order')}
-          className="bg-gradient-to-r from-primary to-secondary text-surface px-5 py-2.5 rounded-lg flex items-center gap-2 font-bold text-[12px] shadow-glow hover:shadow-[0_0_25px_rgba(0,212,255,0.5)] transition-all active:scale-95"
-        >
-          <span className="material-symbols-outlined text-[16px]">add_shopping_cart</span>Create Order
+        <button onClick={() => setActiveModal('create-order')}
+          style={{ fontFamily: FONT, fontWeight: 500, fontSize: '12px', padding: '7px 14px', borderRadius: R, background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', border: '1px solid rgba(255,255,255,0.18)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', transition: 'all .15s' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)'; e.currentTarget.style.color = '#fff' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>add_shopping_cart</span>
+          Create Order
         </button>
       </div>
 
-      {!activeShop ? (
-        <div className="glass-panel rounded-2xl p-8 text-center border-tertiary/20">
-          <span className="material-symbols-outlined text-[48px] text-tertiary mb-3 block">store</span>
-          <p className="text-white font-bold text-[16px] mb-1">No Active Shop Selected</p>
-          <p className="text-on-surface-variant text-[13px]">Select a shop node to view its transaction ledger.</p>
-        </div>
-      ) : (
-        <>
-          {/* KPI Strip */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {kpis.map((k, i) => (
-              <motion.div key={k.label} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
-                whileHover={{ y: -3, scale: 1.02 }}
-                className="rounded-2xl p-5 relative overflow-hidden cursor-default"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <div className="absolute -right-4 -top-4 w-16 h-16 rounded-full blur-2xl" style={{ background: k.color + '30' }} />
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: k.color + '22' }}>
-                      <span className="material-symbols-outlined text-[18px]" style={{ color: k.color }}>{k.icon}</span>
-                    </div>
-                  </div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>{k.label}</p>
-                  <p className="font-display font-black text-[26px] text-white leading-none">{k.value}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+      {/* KPI strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: '10px', marginBottom: '20px' }}>
+        {KPIS.map((k, i) => (
+          <motion.div key={k.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * .06 }}
+            style={{ background: P.card, border: `1px solid ${k.color}18`, borderRadius: R2, padding: '14px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: -6, right: -6, width: 44, height: 44, borderRadius: '50%', background: k.color + '18', filter: 'blur(14px)' }} />
+            <div style={{ width: '30px', height: '30px', borderRadius: R, background: k.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px', color: k.color }}>{k.icon}</span>
+            </div>
+            <p style={{ fontFamily: FONT, fontWeight: 800, fontSize: '22px', color: k.color, margin: 0, lineHeight: 1 }}>{k.value}</p>
+            <p style={{ fontFamily: FONT, fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: P.dim, margin: '3px 0 0' }}>{k.label}</p>
+          </motion.div>
+        ))}
+      </div>
 
-          {/* Filter Tabs */}
-          <div className="flex gap-2 mb-4 flex-wrap">
-            {[
-              { val: '',           label: 'All Orders' },
-              { val: 'pending',    label: 'Pending'    },
-              { val: 'confirmed',  label: 'Confirmed'  },
-              { val: 'completed',  label: 'Completed'  },
-              { val: 'cancelled',  label: 'Cancelled'  },
-            ].map(({ val, label }) => {
-              const cfg = STATUS_CFG[val]
-              const active = statusFilter === val
-              return (
-                <button key={val} onClick={() => { setStatusFilter(val); setPage(1) }}
-                  className="px-4 py-2 rounded-lg text-[11px] font-medium transition-all"
-                  style={active
-                    ? { color: cfg?.color || C.blue, background: (cfg?.color || C.blue) + '20', border: `1px solid ${(cfg?.color || C.blue)}40` }
-                    : { color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  {label}
-                </button>
-              )
-            })}
-          </div>
+      {/* Filter tabs */}
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '14px', flexWrap: 'wrap' }}>
+        {FILTERS.map(({ val, label }) => {
+          const col   = val ? (STATUS_CFG[val]?.color || P.blue) : P.blue
+          const active = statusFilter === val
+          return (
+            <button key={val} onClick={() => { setStatusFilter(val); setPage(1) }}
+              style={{ fontFamily: FONT, fontWeight: 500, fontSize: '12px', padding: '7px 14px', borderRadius: R, cursor: 'pointer', transition: 'all .12s',
+                background: active ? col + '15' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${active ? col + '40' : P.border}`,
+                color: active ? col : P.muted }}>
+              {label}
+            </button>
+          )
+        })}
+      </div>
 
-          {/* Orders Table */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="rounded-2xl overflow-hidden"
-            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                    {['Order ID', 'Customer', 'Items', 'Total', 'Status', 'Actions'].map((h, i) => (
-                      <th key={h} className={`px-5 py-3.5 text-[10px] font-bold uppercase tracking-wider ${
-                        i === 0 ? 'text-left' : i === 1 ? 'text-left hidden md:table-cell' : i === 2 ? 'text-left hidden lg:table-cell' : i === 3 ? 'text-right' : 'text-center'
-                      }`} style={{ color: 'rgba(255,255,255,0.3)' }}>{h}</th>
+      {/* Table */}
+      <div style={{ background: P.card, border: `1px solid ${P.border}`, borderRadius: R2, overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${P.border}`, background: 'rgba(255,255,255,0.02)' }}>
+                {['Order ID', 'Customer', 'Items', 'Total', 'Status', 'Actions'].map((h, i) => (
+                  <th key={h}
+                    style={{ fontFamily: FONT, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.09em', color: P.dim, padding: '12px 16px', textAlign: i >= 3 ? (i === 3 ? 'right' : 'center') : 'left' }}
+                    className={i === 1 ? 'hidden md:table-cell' : i === 2 ? 'hidden lg:table-cell' : ''}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                [...Array(5)].map((_, i) => (
+                  <tr key={i} style={{ borderBottom: `1px solid ${P.border}` }}>
+                    {[...Array(6)].map((_, j) => (
+                      <td key={j} style={{ padding: '12px 16px' }}>
+                        <div style={{ height: '12px', borderRadius: R, background: 'rgba(255,255,255,0.05)', animation: 'pulse 1.5s infinite' }} />
+                      </td>
                     ))}
                   </tr>
-                </thead>
-                <tbody>
-                  {isLoading ? (
-                    [...Array(6)].map((_, i) => (
-                      <tr key={i} className="border-b border-white/5">
-                        {[...Array(6)].map((_, j) => (
-                          <td key={j} className="px-5 py-4"><div className="h-3 bg-white/5 rounded animate-pulse" /></td>
-                        ))}
-                      </tr>
-                    ))
-                  ) : orders.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-5 py-16 text-center">
-                        <span className="material-symbols-outlined text-[48px] text-on-surface-variant/30 block mb-3">receipt_long</span>
-                        <p className="text-on-surface-variant text-[13px]">No orders found. Create your first transaction.</p>
-                      </td>
-                    </tr>
-                  ) : (
-                    orders.map((order, i) => (
-                      <OrderRow
-                        key={order._id}
-                        order={order}
-                        idx={i}
-                        onStatusChange={handleStatusChange}
-                        isUpdating={updateStatusMutation.isPending}
-                        onSimulatePayment={setSimulatingOrder}
-                      />
-                    ))
-                  )}
-                </tbody>
-              </table>
+                ))
+              ) : orders.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ padding: '56px 24px', textAlign: 'center' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '40px', color: 'rgba(255,255,255,0.08)', display: 'block', marginBottom: '10px' }}>receipt_long</span>
+                    <p style={{ fontFamily: FONT, fontSize: '13px', color: P.dim, margin: 0 }}>No orders found. Create your first transaction.</p>
+                  </td>
+                </tr>
+              ) : orders.map((order, i) => (
+                <OrderRow key={order._id} order={order} idx={i}
+                  onStatusChange={handleStatusChange}
+                  isUpdating={updateStatusMut.isPending}
+                  onSimulatePayment={setSimulatingOrder} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        {pagination.pages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderTop: `1px solid ${P.border}` }}>
+            <span style={{ fontFamily: FONT, fontSize: '11px', color: P.dim }}>
+              Page {pagination.page} of {pagination.pages}
+            </span>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              {[{ l: '← Prev', d: page === 1, fn: () => setPage(p => Math.max(1, p - 1)) },
+                { l: 'Next →', d: page === pagination.pages, fn: () => setPage(p => Math.min(pagination.pages, p + 1)) }
+              ].map(b => (
+                <button key={b.l} onClick={b.fn} disabled={b.d}
+                  style={{ fontFamily: FONT, fontSize: '11px', padding: '5px 12px', borderRadius: R, background: 'rgba(255,255,255,0.04)', border: `1px solid ${P.border}`, color: P.muted, cursor: b.d ? 'not-allowed' : 'pointer', opacity: b.d ? .3 : 1 }}>
+                  {b.l}
+                </button>
+              ))}
             </div>
+          </div>
+        )}
+      </div>
 
-            {pagination.pages > 1 && (
-              <div className="flex items-center justify-between px-5 py-3 border-t border-white/8">
-                <span className="text-[11px] text-on-surface-variant">Page {pagination.page} of {pagination.pages}</span>
-                <div className="flex gap-1.5">
-                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 rounded-lg text-[11px] bg-white/5 border border-white/10 text-on-surface-variant hover:text-white hover:bg-white/10 transition-colors disabled:opacity-30">← Prev</button>
-                  <button onClick={() => setPage(p => Math.min(pagination.pages, p + 1))} disabled={page === pagination.pages} className="px-3 py-1 rounded-lg text-[11px] bg-white/5 border border-white/10 text-on-surface-variant hover:text-white hover:bg-white/10 transition-colors disabled:opacity-30">Next →</button>
-                </div>
-              </div>
-            )}
-          </motion.div>
-        </>
-      )}
-
+      {/* Payment simulation modal */}
       {simulatingOrder && (
-        <PaymentSimulationModal
-          order={simulatingOrder}
-          onClose={() => setSimulatingOrder(null)}
-        />
+        <PaymentModal order={simulatingOrder} onClose={() => setSimulatingOrder(null)} />
       )}
     </div>
   )
 }
 
-// ─── Modal Backdrop Helper for Orders.jsx ──────────────────────────────
-function ModalBackdrop({ onClose, children }) {
-  return (
-    <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[100] flex items-center justify-center p-4" onClick={onClose}>
-      <motion.div
-        initial={{ scale: 0.95, y: 15, opacity: 0 }}
-        animate={{ scale: 1, y: 0, opacity: 1 }}
-        exit={{ scale: 0.95, y: 15, opacity: 0 }}
-        transition={{ type: 'spring', duration: 0.45 }}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg bg-[#0e1115] border border-white/10 rounded-2xl p-6 shadow-2xl relative overflow-hidden"
-      >
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors flex items-center justify-center"
-          >
-            <span className="material-symbols-outlined text-[18px]">close</span>
+// ── Payment Simulation Modal ──────────────────────────────
+function PaymentModal({ order, onClose }) {
+  const addEvent    = useAppStore((s) => s.addEvent)
+  const simMut      = useSimulatePayment()
+  const [gateway, setGateway]   = useState('cod')
+  const [forceFail, setForceFail] = useState(false)
+  const [state, setState]       = useState('idle')
+  const [stepIdx, setStepIdx]   = useState(0)
+  const [result, setResult]     = useState(null)
+  const [error, setError]       = useState('')
+
+  const STEPS = [
+    { l: 'Sandbox Handshake',       d: 'Connecting to mock gateway...'           },
+    { l: 'Account Verification',    d: 'Validating authorization tokens...'      },
+    { l: 'Transaction Signature',   d: 'Signing cryptographically...'            },
+    { l: 'AI Automation Triggers',  d: 'Syncing inventory & analytics...'        },
+  ]
+
+  const run = () => {
+    setState('processing'); setStepIdx(0); setError('')
+    let s = 0
+    const iv = setInterval(() => {
+      s++
+      if (s < 3) setStepIdx(s)
+      else {
+        clearInterval(iv); setStepIdx(3)
+        simMut.mutate({ orderId: order._id, gateway, forceFail }, {
+          onSuccess: (res) => {
+            if (res?.success && res.data?.paymentResult === 'success') {
+              setResult(res.data); setState('success')
+              addEvent({ type: 'shopping_cart', message: `Payment confirmed #${order.orderNumber}` })
+            } else { setState('failed'); setError('Transaction declined by mock gateway.') }
+          },
+          onError: (err) => { setState('failed'); setError(err.response?.data?.error || 'Failed.') },
+        })
+      }
+    }, 900)
+  }
+
+  const Backdrop = ({ children, closeable = true }) => (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
+      onClick={closeable ? onClose : undefined}>
+      <motion.div initial={{ scale: .96, y: 12, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: .96, opacity: 0 }}
+        onClick={e => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: '440px', background: '#080808', border: `1px solid ${P.border}`, borderRadius: R2, padding: '24px', boxShadow: '0 40px 80px rgba(0,0,0,.7)', fontFamily: FONT, position: 'relative' }}>
+        {closeable && (
+          <button onClick={onClose} style={{ position: 'absolute', top: '14px', right: '14px', width: '26px', height: '26px', borderRadius: R, background: 'none', border: `1px solid ${P.border}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: P.muted }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = P.text }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = P.muted }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
           </button>
         )}
         {children}
       </motion.div>
     </div>
   )
-}
 
-// ─── Payment Simulation Modal for existing orders ─────────────────────
-function PaymentSimulationModal({ order, onClose }) {
-  const addEvent = useAppStore((s) => s.addEvent)
-  const simulatePaymentMutation = useSimulatePayment()
-
-  const [gateway, setGateway] = useState('cod')
-  const [forceFail, setForceFail] = useState(false)
-  const [simulationState, setSimulationState] = useState('idle') // 'idle', 'processing', 'invoice', 'failed'
-  const [currentStepIndex, setCurrentStepIndex] = useState(0)
-  const [paymentResponseData, setPaymentResponseData] = useState(null)
-  const [error, setError] = useState('')
-
-  const steps = [
-    { label: 'Sandbox Handshake', desc: `Connecting to mock ${gateway.toUpperCase()} secure network...` },
-    { label: 'Account Verification', desc: 'Validating mock account balance and authorization tokens...' },
-    { label: 'Generating Transaction Signature', desc: 'Signing transaction cryptographically and logging receipt...' },
-    { label: 'AI Business Automation Triggers', desc: 'Running inventory, analytics sync, and invoice compilation...' }
-  ]
-
-  const runSimulation = () => {
-    setSimulationState('processing')
-    setCurrentStepIndex(0)
-    setError('')
-
-    let step = 0
-    const interval = setInterval(() => {
-      step += 1
-      if (step < 3) {
-        setCurrentStepIndex(step)
-      } else {
-        clearInterval(interval)
-        setCurrentStepIndex(3)
-        // Hit simulated payment API
-        simulatePaymentMutation.mutate(
-          { orderId: order._id, gateway, forceFail },
-          {
-            onSuccess: (res) => {
-              if (res?.success) {
-                if (res.data?.paymentResult === 'success') {
-                  setPaymentResponseData(res.data)
-                  setSimulationState('invoice')
-                  addEvent({ 
-                    type: 'shopping_cart', 
-                    message: `Mock payment successful for order #${order.orderNumber || 'NEW'}` 
-                  })
-                } else {
-                  setSimulationState('failed')
-                  setError('Simulated Transaction Denied by Mock Gateway.')
-                }
-              } else {
-                setSimulationState('failed')
-                setError(res?.error || 'Simulated checkout failed.')
-              }
-            },
-            onError: (err) => {
-              setSimulationState('failed')
-              setError(err.response?.data?.error || 'Failed to simulate payment checkout.')
-            }
-          }
-        )
-      }
-    }, 900)
-  }
-
-  const handlePrintReceipt = () => {
-    alert('Simulating PDF Receipt Generation and POS Print Job... Done!')
-  }
-
-  if (simulationState === 'processing') {
-    const currentStep = steps[currentStepIndex]
-    const pct = ((currentStepIndex + 1) / steps.length) * 100
+  if (state === 'processing') {
+    const pct = ((stepIdx + 1) / STEPS.length) * 100
     return (
-      <ModalBackdrop onClose={() => {}}>
-        <div className="text-center p-6 space-y-6">
-          <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
-            <div className="absolute inset-0 rounded-full border-4 border-[#1390ff]/10 animate-pulse" />
-            <div className="absolute inset-0 rounded-full border-4 border-t-[#1390ff] animate-spin" />
-            <span className="material-symbols-outlined text-[32px] text-[#1390ff]">account_balance_wallet</span>
+      <Backdrop closeable={false}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: '64px', height: '64px', margin: '0 auto 16px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `3px solid ${P.blue}`, borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }} />
+            <span className="material-symbols-outlined" style={{ fontSize: '26px', color: P.blue }}>account_balance_wallet</span>
           </div>
-
-          <div className="space-y-2">
-            <h3 className="text-[18px] font-bold text-white uppercase tracking-wider font-sora">
-              Payment Processing...
-            </h3>
-            <p className="text-[12px] text-white/50">
-              Active Mode: <span className="font-bold text-[#1390ff] capitalize">{gateway} Simulation</span>
-            </p>
+          <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: '16px', color: P.text, margin: '0 0 4px' }}>Processing Payment...</p>
+          <p style={{ fontFamily: FONT, fontSize: '11px', color: P.muted, margin: '0 0 16px' }}>Mode: <span style={{ color: P.blue, fontWeight: 600 }}>{gateway.toUpperCase()}</span></p>
+          <div style={{ height: '4px', borderRadius: '2px', background: 'rgba(255,255,255,0.07)', marginBottom: '16px' }}>
+            <div style={{ height: '100%', borderRadius: '2px', background: P.blue, width: `${pct}%`, transition: 'width .5s ease' }} />
           </div>
-
-          {/* Progress bar */}
-          <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden border border-white/5">
-            <div className="bg-[#1390ff] h-full transition-all duration-500 rounded-full shadow-[0_0_15px_rgba(19,144,255,0.8)]" style={{ width: `${pct}%` }} />
-          </div>
-
-          {/* Current Step Description */}
-          <div className="p-4 bg-white/5 rounded-xl border border-white/10 text-left min-h-[90px] flex flex-col justify-center">
-            <p className="text-[10px] text-[#1390ff] font-bold uppercase tracking-widest">{currentStep?.label}</p>
-            <p className="text-[12px] text-white/80 mt-1 font-medium">{currentStep?.desc}</p>
-          </div>
-
-          {/* Step list details */}
-          <div className="space-y-2.5 text-left border-t border-white/10 pt-4">
-            {steps.map((st, idx) => {
-              const isDone = idx < currentStepIndex
-              const isActive = idx === currentStepIndex
-              return (
-                <div key={idx} className="flex items-center gap-3 transition-colors">
-                  <span className={`material-symbols-outlined text-[16px] ${
-                    isDone ? 'text-secondary' : isActive ? 'text-[#1390ff] animate-pulse' : 'text-white/20'
-                  }`}>
-                    {isDone ? 'check_circle' : 'pending'}
-                  </span>
-                  <span className={`text-[12px] font-semibold ${
-                    isDone ? 'text-white/60' : isActive ? 'text-white font-bold' : 'text-white/30'
-                  }`}>
-                    {st.label}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      </ModalBackdrop>
-    )
-  }
-
-  if (simulationState === 'failed') {
-    return (
-      <ModalBackdrop onClose={onClose}>
-        <div className="text-center p-6 space-y-6">
-          <div className="w-20 h-20 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto text-red-500">
-            <span className="material-symbols-outlined text-[36px]">error</span>
-          </div>
-
-          <div className="space-y-2">
-            <h3 className="text-[20px] font-extrabold text-white uppercase tracking-wider font-sora">
-              Simulation Failed
-            </h3>
-            <p className="text-[12px] text-red-400 font-medium">
-              {error || 'Transaction was declined by the mock gateway.'}
-            </p>
-          </div>
-
-          <div className="p-4 bg-white/5 rounded-xl border border-white/10 text-left space-y-2">
-            <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Troubleshooting Option</p>
-            <p className="text-[12px] text-white/70">
-              The payment simulation was rejected. You can turn off <strong>Force Payment Failure</strong> or try another gateway mode.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            <button
-              type="button"
-              onClick={runSimulation}
-              className="w-full py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white text-[12px] font-bold uppercase transition-all"
-            >
-              Retry Simulation
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full py-3 rounded-xl bg-[#1390ff] text-white text-[12px] font-bold uppercase shadow-[0_0_20px_rgba(19,144,255,0.45)] hover:bg-[#0f7bcc] transition-all"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </ModalBackdrop>
-    )
-  }
-
-  if (simulationState === 'invoice') {
-    const res = paymentResponseData
-    const invoice = res?.invoice
-    return (
-      <ModalBackdrop onClose={onClose}>
-        <div className="max-h-[75vh] overflow-y-auto p-1 space-y-5">
-          <div className="text-center space-y-2">
-            <div className="w-12 h-12 rounded-full bg-secondary/15 border border-secondary/30 flex items-center justify-center mx-auto text-secondary">
-              <span className="material-symbols-outlined text-[24px]">task_alt</span>
-            </div>
-            <h3 className="text-[20px] font-black text-white uppercase tracking-wider font-sora">
-              Payment Completed!
-            </h3>
-            <p className="text-[11px] text-secondary font-bold uppercase tracking-widest">
-              AI Automations Triggered Successfully
-            </p>
-          </div>
-
-          {/* Receipt Box - Thermal Paper design */}
-          <div className="bg-white text-black p-5 rounded-2xl border border-neutral-200 shadow-xl space-y-4 font-mono text-[11px] relative overflow-hidden select-none">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-200 to-transparent" />
-            
-            <div className="text-center border-b border-dashed border-neutral-300 pb-3">
-              <h4 className="font-extrabold text-[14px] uppercase tracking-wide">{invoice?.shop?.name}</h4>
-              <p className="text-neutral-500 text-[10px] mt-0.5">{invoice?.shop?.address}</p>
-              <p className="text-neutral-500 text-[10px]">{invoice?.shop?.phone}</p>
-            </div>
-
-            <div className="space-y-1">
-              <p><span className="font-bold">Invoice No:</span> {invoice?.invoiceNumber}</p>
-              <p><span className="font-bold">Date:</span> {new Date(invoice?.payment?.processedAt).toLocaleString()}</p>
-              <p><span className="font-bold">Customer Name:</span> {invoice?.customer?.name}</p>
-              <p><span className="font-bold">Customer Phone:</span> {invoice?.customer?.phone}</p>
-            </div>
-
-            {/* Items Table */}
-            <div className="border-t border-b border-dashed border-neutral-300 py-3 space-y-1.5">
-              <div className="flex justify-between font-bold text-neutral-800">
-                <span className="w-1/2">Item Description</span>
-                <span className="w-1/4 text-center">Qty × Price</span>
-                <span className="w-1/4 text-right">Total</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
+            {STEPS.map((st, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '14px', color: i < stepIdx ? P.emerald : i === stepIdx ? P.blue : P.dim }}>
+                  {i < stepIdx ? 'check_circle' : 'pending'}
+                </span>
+                <span style={{ fontFamily: FONT, fontSize: '12px', color: i < stepIdx ? P.muted : i === stepIdx ? P.text : P.dim, fontWeight: i === stepIdx ? 600 : 400 }}>
+                  {st.l}
+                </span>
               </div>
-              {invoice?.items?.map((item, idx) => (
-                <div key={idx} className="flex justify-between text-neutral-600">
-                  <span className="w-1/2 truncate">{item.name}</span>
-                  <span className="w-1/4 text-center">{item.qty} × ${item.price.toFixed(2)}</span>
-                  <span className="w-1/4 text-right">${item.total.toFixed(2)}</span>
+            ))}
+          </div>
+        </div>
+      </Backdrop>
+    )
+  }
+
+  if (state === 'failed') return (
+    <Backdrop>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: P.rose + '15', border: `1px solid ${P.rose}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '26px', color: P.rose }}>error</span>
+        </div>
+        <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: '16px', color: P.text, margin: '0 0 6px' }}>Simulation Failed</p>
+        <p style={{ fontFamily: FONT, fontSize: '12px', color: P.rose, margin: '0 0 16px' }}>{error}</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <button onClick={run} style={{ fontFamily: FONT, fontWeight: 600, fontSize: '12px', padding: '9px', borderRadius: R, background: 'rgba(255,255,255,0.06)', border: `1px solid ${P.border}`, color: P.text, cursor: 'pointer' }}>Retry</button>
+          <button onClick={onClose} style={{ fontFamily: FONT, fontWeight: 600, fontSize: '12px', padding: '9px', borderRadius: R, background: P.blue, border: 'none', color: '#fff', cursor: 'pointer' }}>Close</button>
+        </div>
+      </div>
+    </Backdrop>
+  )
+
+  if (state === 'success') {
+    const inv = result?.invoice
+    return (
+      <Backdrop>
+        <div style={{ maxHeight: '75vh', overflowY: 'auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+            <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: P.emerald + '15', border: `1px solid ${P.emerald}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '22px', color: P.emerald }}>task_alt</span>
+            </div>
+            <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: '15px', color: P.text, margin: '0 0 3px' }}>Payment Completed</p>
+            <p style={{ fontFamily: FONT, fontSize: '11px', color: P.emerald, margin: 0 }}>All automations triggered</p>
+          </div>
+          {/* Thermal receipt */}
+          <div style={{ background: '#fff', borderRadius: R, padding: '16px', fontFamily: "'Courier New',monospace", fontSize: '11px', color: '#1a1a1a', marginBottom: '12px' }}>
+            <p style={{ textAlign: 'center', fontWeight: 800, fontSize: '13px', margin: '0 0 4px' }}>{inv?.shop?.name}</p>
+            <p style={{ textAlign: 'center', color: '#555', fontSize: '10px', margin: '0 0 10px' }}>{inv?.shop?.phone}</p>
+            <div style={{ borderTop: '1px dashed #ccc', paddingTop: '8px', marginBottom: '8px' }}>
+              <p style={{ margin: '0 0 3px' }}><b>Invoice:</b> {inv?.invoiceNumber}</p>
+              <p style={{ margin: '0 0 3px' }}><b>Date:</b> {new Date(inv?.payment?.processedAt).toLocaleString()}</p>
+              <p style={{ margin: 0 }}><b>Customer:</b> {inv?.customer?.name} · {inv?.customer?.phone}</p>
+            </div>
+            <div style={{ borderTop: '1px dashed #ccc', borderBottom: '1px dashed #ccc', padding: '8px 0', marginBottom: '8px' }}>
+              {inv?.items?.map((item, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+                  <span style={{ marginLeft: '8px' }}>{item.qty}×Rs.{item.price} = Rs.{item.total}</span>
                 </div>
               ))}
             </div>
-
-            {/* Calculations */}
-            <div className="space-y-1 text-right">
-              <p><span className="font-bold">Subtotal:</span> ${invoice?.pricing?.subtotal?.toFixed(2)}</p>
-              {invoice?.pricing?.discount > 0 && <p className="text-red-600"><span className="font-bold">Discount:</span> -${invoice?.pricing?.discount?.toFixed(2)}</p>}
-              {invoice?.pricing?.tax > 0 && <p><span className="font-bold">Tax:</span> +${invoice?.pricing?.tax?.toFixed(2)}</p>}
-              <div className="flex justify-between font-extrabold text-[13px] text-black border-t border-dashed border-neutral-300 pt-2 mt-2">
-                <span>TOTAL AMOUNT PAID</span>
-                <span>${invoice?.pricing?.total?.toFixed(2)}</span>
-              </div>
-            </div>
-
-            {/* Transaction Data */}
-            <div className="border-t border-dashed border-neutral-300 pt-3 text-center text-neutral-500 text-[9px] space-y-0.5">
-              <p className="uppercase font-bold text-neutral-700">Payment simulated via {invoice?.payment?.method}</p>
-              <p className="font-mono">TXN: {invoice?.payment?.transactionId}</p>
-              <p className="mt-1">THANK YOU FOR YOUR TRANSACTION!</p>
-            </div>
+            <p style={{ textAlign: 'right', fontWeight: 800, fontSize: '13px', margin: 0 }}>TOTAL: Rs.{inv?.pricing?.total}</p>
+            <p style={{ textAlign: 'center', color: '#777', fontSize: '9px', marginTop: '8px', borderTop: '1px dashed #ccc', paddingTop: '6px' }}>
+              via {inv?.payment?.method?.toUpperCase()} · TXN: {inv?.payment?.transactionId}
+            </p>
           </div>
-
-          {/* AI Automations Event Checklist */}
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3 text-left">
-            <h4 className="text-[10px] text-white/40 uppercase tracking-widest font-bold">AI & System Automation logs</h4>
-            <div className="space-y-2.5">
-              <div className="flex items-start gap-2.5">
-                <span className="material-symbols-outlined text-[16px] text-secondary">inventory_2</span>
-                <div>
-                  <p className="text-[12px] font-bold text-white">📦 Stock Quantities Adjusted</p>
-                  <p className="text-[10px] text-white/50">Inventory decremented dynamically. minimum level clamped.</p>
-                  {res?.stockAlerts?.length > 0 && (
-                    <div className="mt-1.5 p-2 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-[9px]">
-                      ⚠️ <strong>Low Stock Alert:</strong> {res.stockAlerts.map(a => `${a.name} (Stock: ${a.currentStock})`).join(', ')}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <span className="material-symbols-outlined text-[16px] text-secondary">insights</span>
-                <div>
-                  <p className="text-[12px] font-bold text-white">📊 Analytics Ledger Recalculated</p>
-                  <p className="text-[10px] text-white/50">Shop aggregates rebuilt. Today's stats updated on dashboard in real-time.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <span className="material-symbols-outlined text-[16px] text-secondary">trending_up</span>
-                <div>
-                  <p className="text-[12px] font-bold text-white">🤖 AI Demand Intelligence Updated</p>
-                  <p className="text-[10px] text-white/50">Trend parsed. <em>{res?.demandInsights?.predictedNextDemand}</em></p>
-                </div>
-              </div>
+          {result?.stockAlerts?.length > 0 && (
+            <div style={{ padding: '10px', borderRadius: R, background: P.rose + '08', border: `1px solid ${P.rose}20`, marginBottom: '10px' }}>
+              <p style={{ fontFamily: FONT, fontSize: '11px', color: P.rose, margin: 0 }}>
+                ⚠ Low Stock: {result.stockAlerts.map(a => `${a.name} (${a.currentStock})`).join(', ')}
+              </p>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 pt-1">
-            <button
-              type="button"
-              onClick={handlePrintReceipt}
-              className="w-full py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white text-[12px] font-bold uppercase transition-all flex items-center justify-center gap-1.5"
-            >
-              <span className="material-symbols-outlined text-[16px]">print</span> Print Slip
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <button onClick={() => alert('Print job sent!')} style={{ fontFamily: FONT, fontWeight: 500, fontSize: '12px', padding: '9px', borderRadius: R, background: 'rgba(255,255,255,0.06)', border: `1px solid ${P.border}`, color: P.text, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>print</span> Print
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full py-3 rounded-xl bg-[#1390ff] text-white text-[12px] font-bold uppercase shadow-[0_0_20px_rgba(19,144,255,0.45)] hover:bg-[#0f7bcc] transition-all flex items-center justify-center gap-1.5"
-            >
-              <span className="material-symbols-outlined text-[16px]">done</span> Finish & Sync
-            </button>
+            <button onClick={onClose} style={{ fontFamily: FONT, fontWeight: 600, fontSize: '12px', padding: '9px', borderRadius: R, background: P.blue, border: 'none', color: '#fff', cursor: 'pointer' }}>Done</button>
           </div>
         </div>
-      </ModalBackdrop>
+      </Backdrop>
     )
   }
 
+  // Idle — gateway selector
   return (
-    <ModalBackdrop onClose={onClose}>
-      <div className="flex items-center gap-3 mb-5">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1390ff]/20 to-[#005eff]/20 flex items-center justify-center border border-[#1390ff]/30">
-          <span className="material-symbols-outlined text-[#1390ff] text-[20px] font-bold">account_balance_wallet</span>
+    <Backdrop>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
+        <div style={{ width: '36px', height: '36px', borderRadius: R, background: P.blue + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '18px', color: P.blue }}>account_balance_wallet</span>
         </div>
         <div>
-          <h2 className="text-[20px] font-extrabold text-white font-sora uppercase">Pay Order</h2>
-          <p className="text-[11px] text-white/50">Simulate payment for Order #{order.orderNumber || order._id?.slice(-6)?.toUpperCase()}</p>
+          <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: '14px', color: P.text, margin: 0 }}>Pay Order</p>
+          <p style={{ fontFamily: FONT, fontSize: '11px', color: P.muted, margin: '2px 0 0' }}>#{order.orderNumber} · Rs.{order.pricing?.total?.toLocaleString()}</p>
         </div>
       </div>
 
-      <div className="space-y-4">
-        {/* Order specs */}
-        <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-2 text-left">
-          <p className="text-[12px] text-white/80"><span className="text-white/40">Customer:</span> <strong className="text-white font-bold">{order.customerName || 'Guest'}</strong> ({order.customerPhone || '—'})</p>
-          <p className="text-[12px] text-white/80"><span className="text-white/40">Total Amount:</span> <strong className="text-[#1390ff] font-extrabold">${(order.pricing?.total ?? order.totalAmount)?.toFixed(2)}</strong></p>
-          <p className="text-[11px] text-white/50 mt-2 truncate"><span className="text-white/30">Items:</span> {(order.items || []).map(i => `${i.name} ×${i.qty || i.quantity}`).join(', ')}</p>
-        </div>
-
-        {/* Payment Simulation Setup */}
-        <div className="bg-white/5 rounded-xl p-4 border border-white/10 space-y-3 text-left">
-          <label className="block text-[10px] text-white/40 uppercase tracking-widest font-bold">Select Simulated Gateway</label>
-          <div className="grid grid-cols-1 gap-3">
-            <div>
-              <select
-                value={gateway}
-                onChange={e => setGateway(e.target.value)}
-                className="w-full p-3 rounded-xl text-[12px] bg-black border border-white/10 text-white outline-none focus:border-[#1390ff]"
-              >
-                <option value="cod">Mock COD (Cash Mode)</option>
-                <option value="jazzcash">Mock JazzCash Gateway</option>
-                <option value="easypaisa">Mock Easypaisa Gateway</option>
-                <option value="stripe">Mock Stripe Card Mode</option>
-              </select>
-            </div>
-            <div>
-              <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] text-white/60 hover:text-white p-3 border border-white/10 rounded-xl hover:bg-white/5 transition-all h-[46px]">
-                <input
-                  type="checkbox"
-                  checked={forceFail}
-                  onChange={e => setForceFail(e.target.checked)}
-                  className="rounded bg-black border-white/10 text-[#1390ff] focus:ring-0 focus:ring-offset-0"
-                />
-                Force Payment Failure
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={runSimulation}
-          className="w-full py-3 rounded-xl bg-[#1390ff] text-white font-bold text-[13px] shadow-[0_0_20px_rgba(19,144,255,0.45)] hover:bg-[#0f7bcc] transition-all duration-300 uppercase tracking-wider flex items-center justify-center gap-2"
-        >
-          <span className="material-symbols-outlined text-[18px]">credit_card</span> Start Payment Simulation
-        </button>
+      <p style={{ fontFamily: FONT, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: P.dim, margin: '0 0 8px' }}>Select Gateway</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '14px' }}>
+        {[
+          { id: 'cod',       label: 'Cash / COD',    icon: 'payments'               },
+          { id: 'card',      label: 'Card',          icon: 'credit_card'            },
+          { id: 'jazzcash',  label: 'JazzCash',      icon: 'phone_android'          },
+          { id: 'easypaisa', label: 'Easypaisa',     icon: 'account_balance_wallet' },
+        ].map(g => (
+          <button key={g.id} onClick={() => setGateway(g.id)}
+            style={{ fontFamily: FONT, fontWeight: 500, fontSize: '12px', padding: '9px 10px', borderRadius: R, cursor: 'pointer', transition: 'all .12s', display: 'flex', alignItems: 'center', gap: '7px', textAlign: 'left',
+              background: gateway === g.id ? P.blue + '15' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${gateway === g.id ? P.blue + '45' : P.border}`,
+              color: gateway === g.id ? P.blue : P.muted }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>{g.icon}</span>
+            {g.label}
+          </button>
+        ))}
       </div>
-    </ModalBackdrop>
+
+      <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', marginBottom: '16px', padding: '10px', borderRadius: R, background: 'rgba(255,255,255,0.03)', border: `1px solid ${P.border}` }}>
+        <div onClick={() => setForceFail(v => !v)}
+          style={{ width: '36px', height: '20px', borderRadius: '10px', background: forceFail ? P.rose : 'rgba(255,255,255,0.12)', position: 'relative', cursor: 'pointer', transition: 'background .2s', flexShrink: 0 }}>
+          <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#fff', position: 'absolute', top: '2px', left: forceFail ? '18px' : '2px', transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.4)' }} />
+        </div>
+        <div>
+          <p style={{ fontFamily: FONT, fontWeight: 600, fontSize: '12px', color: P.text, margin: 0 }}>Force Failure</p>
+          <p style={{ fontFamily: FONT, fontSize: '10px', color: P.dim, margin: '1px 0 0' }}>Simulate a declined transaction</p>
+        </div>
+      </label>
+
+      <button onClick={run}
+        style={{ width: '100%', fontFamily: FONT, fontWeight: 700, fontSize: '13px', padding: '11px', borderRadius: R, background: P.blue, color: '#fff', border: 'none', cursor: 'pointer', boxShadow: `0 0 16px ${P.blue}35` }}>
+        Run Simulation
+      </button>
+    </Backdrop>
   )
 }

@@ -2,24 +2,45 @@
 import { motion } from 'framer-motion'
 import { useProfile, useUpdateProfile } from '../../features/auth/authHooks'
 import useAuthStore from '../../store/useAuthStore'
-import useUIStore from '../../store/useUIStore'
 
-function Section({ title, icon, children }) {
+/* ─── Design tokens ─────────────────────────────────────── */
+const F    = "'Inter','Segoe UI',system-ui,sans-serif"
+const CARD = '#000000'
+
+const C = {
+  blue:    '#3b82f6',
+  violet:  '#8b5cf6',
+  emerald: '#10b981',
+  cyan:    '#06b6d4',
+  rose:    '#f43f5e',
+  amber:   '#f59e0b',
+}
+
+/* ══════════════════════════════════════════════════════════
+   SECTION WRAPPER
+══════════════════════════════════════════════════════════ */
+function Section({ title, icon, accentColor = C.blue, children }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-panel rounded-2xl overflow-hidden">
-      <div className="px-6 py-4 border-b border-white/8 flex items-center gap-2">
-        <span className="material-symbols-outlined text-secondary text-[18px]">{icon}</span>
-        <h3 className="font-bold text-[14px] text-white">{title}</h3>
+    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
+      style={{ background: CARD, border: '1px solid rgba(255,255,255,0.09)', borderRadius: '6px', overflow: 'hidden' }}>
+      <div style={{
+        padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)',
+        display: 'flex', alignItems: 'center', gap: '8px',
+      }}>
+        <span className="material-symbols-outlined" style={{ fontSize: '15px', color: accentColor }}>{icon}</span>
+        <span style={{ fontFamily: F, fontWeight: 600, fontSize: '13px', color: '#fff' }}>{title}</span>
       </div>
-      <div className="p-6">{children}</div>
+      <div style={{ padding: '20px' }}>{children}</div>
     </motion.div>
   )
 }
 
+/* ══════════════════════════════════════════════════════════
+   MAIN COMPONENT
+══════════════════════════════════════════════════════════ */
 export default function Settings() {
-  const user = useAuthStore((s) => s.user)
-  const activeShop = useAuthStore((s) => s.activeShop)
-  const setActiveModal = useUIStore((s) => s.setActiveModal)
+  const user = useAuthStore(s => s.user)
+  const activeShop = useAuthStore(s => s.activeShop)
   const updateMutation = useUpdateProfile()
 
   const [profileForm, setProfileForm] = useState({
@@ -45,161 +66,254 @@ export default function Settings() {
     })
   }
 
-
-
   const getInitials = (name) => {
     if (!name) return 'U'
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   }
 
+  const inp = {
+    width: '100%', padding: '10px 13px', borderRadius: '6px', fontFamily: F, fontSize: '13px',
+    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)',
+    color: '#fff', outline: 'none', boxSizing: 'border-box',
+    transition: 'border-color 0.15s',
+  }
+
   return (
-    <div>
-      <div className="mb-6">
-        <h2 className="font-display text-[28px] font-black text-white tracking-tight">Account Settings</h2>
-        <p className="text-[12px] text-on-surface-variant mt-1">Manage your profile and account settings</p>
+    <div style={{ fontFamily: F }}>
+
+      {/* ── Header ── */}
+      <div style={{ marginBottom: '24px' }}>
+        <h2 style={{ fontFamily: F, fontSize: '22px', fontWeight: 700, color: '#fff', margin: 0 }}>Account Settings</h2>
+        <p style={{ fontFamily: F, fontSize: '12px', color: 'rgba(255,255,255,0.38)', marginTop: '4px' }}>
+          Manage your profile and connected shop information
+        </p>
       </div>
 
-      <div className="grid grid-cols-12 gap-5">
-        {/* Left Column */}
-        <div className="col-span-12 lg:col-span-7 space-y-5">
+      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '16px' }}>
 
-          {/* Profile Card */}
-          <Section title="My Profile" icon="account_circle">
-            <div className="flex items-center gap-4 mb-6 pb-6 border-b border-white/8">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/50 to-secondary/50 flex items-center justify-center font-bold text-[24px] text-white border border-secondary/20 shadow-glow">
+        {/* ═══ Left Column ═══ */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+          {/* ── My Profile ── */}
+          <Section title="My Profile" icon="account_circle" accentColor={C.blue}>
+
+            {/* avatar + meta */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              <div style={{
+                width: '64px', height: '64px', borderRadius: '6px',
+                background: `linear-gradient(135deg, ${C.blue}80, ${C.cyan}50)`,
+                border: `1px solid ${C.blue}40`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: F, fontWeight: 800, fontSize: '24px', color: '#fff', flexShrink: 0,
+              }}>
                 {getInitials(user?.name)}
               </div>
               <div>
-                <p className="text-[18px] font-bold text-white">{user?.name || 'Unknown User'}</p>
-                <p className="text-[12px] text-on-surface-variant font-mono">{user?.phone}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className={`text-[10px] border px-2 py-0.5 rounded-full font-bold uppercase ${
-                    user?.plan === 'premium' ? 'text-tertiary border-tertiary/30 bg-tertiary/10' :
-                    user?.plan === 'standard' ? 'text-primary border-primary/30 bg-primary/10' :
-                    'text-outline border-outline/30'
-                  }`}>{user?.plan || 'basic'} user</span>
-                  {user?.isVerified && (
-                    <span className="text-[10px] text-secondary border border-secondary/25 bg-secondary/10 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[11px]">verified</span>Verified
-                    </span>
-                  )}
-                </div>
+                <p style={{ fontFamily: F, fontSize: '17px', fontWeight: 700, color: '#fff', marginBottom: '2px' }}>
+                  {user?.name || 'Unknown User'}
+                </p>
+                <p style={{ fontFamily: 'monospace', fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>
+                  {user?.phone}
+                </p>
+                {user?.isVerified && (
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '6px', padding: '2px 8px', borderRadius: '4px', background: C.emerald + '15', border: `1px solid ${C.emerald}30` }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '11px', color: C.emerald }}>verified</span>
+                    <span style={{ fontFamily: F, fontSize: '10px', fontWeight: 600, color: C.emerald }}>Verified</span>
+                  </div>
+                )}
               </div>
             </div>
 
+            {/* feedback message */}
             {profileMsg && (
-              <div className={`mb-5 p-3 rounded-lg border text-[11px] flex items-center gap-2 ${
-                profileMsg.type === 'error' ? 'bg-error/10 border-error/20 text-error' : 'bg-secondary/10 border-secondary/20 text-secondary'
-              }`}>
-                <span className="material-symbols-outlined text-[14px]">{profileMsg.type === 'error' ? 'error' : 'check_circle'}</span>
-                {profileMsg.text}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '10px 12px', borderRadius: '6px', marginBottom: '16px',
+                background: profileMsg.type === 'error' ? C.rose + '12' : C.emerald + '12',
+                border: profileMsg.type === 'error' ? `1px solid ${C.rose}30` : `1px solid ${C.emerald}30`,
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '14px', color: profileMsg.type === 'error' ? C.rose : C.emerald }}>
+                  {profileMsg.type === 'error' ? 'error' : 'check_circle'}
+                </span>
+                <span style={{ fontFamily: F, fontSize: '11px', color: profileMsg.type === 'error' ? C.rose : C.emerald }}>
+                  {profileMsg.text}
+                </span>
               </div>
             )}
 
-            <form onSubmit={handleProfileSave} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            {/* form */}
+            <form onSubmit={handleProfileSave} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label className="block text-[10px] text-outline uppercase tracking-wider font-semibold mb-1.5">Your Name</label>
+                  <label style={{ display: 'block', fontFamily: F, fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(255,255,255,0.3)', marginBottom: '6px' }}>
+                    Your Name
+                  </label>
                   <input
                     value={profileForm.name}
                     onChange={e => setProfileForm(p => ({ ...p, name: e.target.value }))}
                     placeholder="Your name"
-                    className="w-full p-3 rounded-xl text-[13px] bg-black/20 border border-white/10 text-white placeholder:text-on-surface-variant/40 focus:border-secondary"
+                    style={inp}
+                    onFocus={e => e.target.style.borderColor = C.blue + '50'}
+                    onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.09)'}
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-outline uppercase tracking-wider font-semibold mb-1.5">Email Address</label>
+                  <label style={{ display: 'block', fontFamily: F, fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(255,255,255,0.3)', marginBottom: '6px' }}>
+                    Email Address
+                  </label>
                   <input
                     type="email"
                     value={profileForm.email}
                     onChange={e => setProfileForm(p => ({ ...p, email: e.target.value }))}
                     placeholder="you@example.com"
-                    className="w-full p-3 rounded-xl text-[13px] bg-black/20 border border-white/10 text-white placeholder:text-on-surface-variant/40 focus:border-secondary"
+                    style={inp}
+                    onFocus={e => e.target.style.borderColor = C.blue + '50'}
+                    onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.09)'}
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label className="block text-[10px] text-outline uppercase tracking-wider font-semibold mb-1.5">New Password</label>
+                  <label style={{ display: 'block', fontFamily: F, fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(255,255,255,0.3)', marginBottom: '6px' }}>
+                    New Password
+                  </label>
                   <input
                     type="password"
                     value={profileForm.password}
                     onChange={e => setProfileForm(p => ({ ...p, password: e.target.value }))}
-                    placeholder="Leave blank to keep current"
-                    className="w-full p-3 rounded-xl text-[13px] bg-black/20 border border-white/10 text-white placeholder:text-on-surface-variant/30 focus:border-secondary"
+                    placeholder="Leave blank to keep"
+                    style={inp}
+                    onFocus={e => e.target.style.borderColor = C.blue + '50'}
+                    onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.09)'}
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-outline uppercase tracking-wider font-semibold mb-1.5">Confirm Password</label>
+                  <label style={{ display: 'block', fontFamily: F, fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'rgba(255,255,255,0.3)', marginBottom: '6px' }}>
+                    Confirm Password
+                  </label>
                   <input
                     type="password"
                     value={profileForm.confirmPassword}
                     onChange={e => setProfileForm(p => ({ ...p, confirmPassword: e.target.value }))}
                     placeholder="Repeat new password"
-                    className="w-full p-3 rounded-xl text-[13px] bg-black/20 border border-white/10 text-white placeholder:text-on-surface-variant/30 focus:border-secondary"
+                    style={inp}
+                    onFocus={e => e.target.style.borderColor = C.blue + '50'}
+                    onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.09)'}
                   />
                 </div>
               </div>
+
               <button
                 type="submit"
                 disabled={updateMutation.isPending}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-surface font-bold text-[12px] shadow-glow hover:shadow-[0_0_25px_rgba(0,212,255,0.5)] transition-all active:scale-95 disabled:opacity-50"
-              >
-                {updateMutation.isPending ? 'Saving...' : 'Save My Profile'}
+                style={{
+                  width: '100%', padding: '11px', borderRadius: '6px', fontFamily: F, fontSize: '13px', fontWeight: 600,
+                  background: C.blue, color: '#fff', border: 'none', cursor: updateMutation.isPending ? 'not-allowed' : 'pointer',
+                  opacity: updateMutation.isPending ? 0.65 : 1,
+                  boxShadow: `0 0 16px ${C.blue}40`, transition: 'background 0.15s',
+                }}
+                onMouseEnter={e => { if (!updateMutation.isPending) e.currentTarget.style.background = '#2563eb' }}
+                onMouseLeave={e => { if (!updateMutation.isPending) e.currentTarget.style.background = C.blue }}>
+                {updateMutation.isPending ? 'Saving…' : 'Save Profile'}
               </button>
             </form>
           </Section>
 
-          {/* Active Shop Info */}
-          <Section title="Active Shop" icon="storefront">
+          {/* ── Active Shop ── */}
+          <Section title="Connected Shop" icon="storefront" accentColor={C.emerald}>
             {activeShop ? (
-              <div className="space-y-3">
-                <div className="flex items-center gap-4 p-4 bg-secondary/5 rounded-xl border border-secondary/20">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                    <span className="material-symbols-outlined text-surface text-[22px]">storefront</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-bold text-white text-[15px]">{activeShop.name}</p>
-                    <p className="text-[11px] text-on-surface-variant capitalize">{activeShop.businessType} Â· {activeShop.plan || 'basic'} plan</p>
-                  </div>
-                  <span className="text-[9px] bg-secondary/15 text-secondary border border-secondary/30 px-2 py-1 rounded-full font-bold uppercase">Active</span>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '14px',
+                padding: '14px 16px', borderRadius: '6px',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}>
+                <div style={{
+                  width: '48px', height: '48px', borderRadius: '6px', flexShrink: 0,
+                  background: `linear-gradient(135deg, ${C.emerald}70, ${C.cyan}40)`,
+                  border: `1px solid ${C.emerald}40`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '22px', color: '#fff' }}>storefront</span>
                 </div>
-                <button
-                  onClick={() => setActiveModal('upgrade-plan')}
-                  className="w-full py-2.5 rounded-xl border border-secondary/25 text-secondary text-[12px] font-bold hover:bg-secondary/10 transition-colors flex items-center justify-center gap-2"
-                >
-                  <span className="material-symbols-outlined text-[16px]">rocket_launch</span>
-                  Upgrade Shop Plan
-                </button>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontFamily: F, fontSize: '14px', fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {activeShop.name}
+                  </p>
+                  <p style={{ fontFamily: F, fontSize: '11px', color: 'rgba(255,255,255,0.4)', textTransform: 'capitalize', marginTop: '2px' }}>
+                    {activeShop.businessType}
+                  </p>
+                </div>
+                <span style={{
+                  fontFamily: F, fontSize: '10px', fontWeight: 600, padding: '3px 9px', borderRadius: '4px',
+                  color: C.emerald, background: C.emerald + '15', border: `1px solid ${C.emerald}30`, flexShrink: 0,
+                }}>Active</span>
               </div>
             ) : (
-              <p className="text-[12px] text-on-surface-variant italic">No active shop selected. Choose one from the sidebar profile menu.</p>
+              <p style={{ fontFamily: F, fontSize: '12px', color: 'rgba(255,255,255,0.35)', fontStyle: 'italic' }}>
+                No shop selected. Choose one from the sidebar profile menu.
+              </p>
             )}
           </Section>
+
         </div>
 
-        {/* Right Column */}
-        <div className="col-span-12 lg:col-span-5 space-y-5">
+        {/* ═══ Right Column ═══ */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-          {/* Account Info */}
-          <Section title="Account Details" icon="badge">
-            <div className="space-y-3">
+          {/* ── Account Details ── */}
+          <Section title="Account Info" icon="badge" accentColor={C.violet}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
               {[
-                { label: 'User ID', value: user?._id || 'â€”', mono: true },
-                { label: 'Phone', value: user?.phone || 'â€”', mono: true },
-                { label: 'Login Method', value: user?.authProvider || 'local', capitalize: true },
-                { label: 'Plan', value: user?.plan || 'basic', capitalize: true },
-                { label: 'Account Status', value: user?.isActive ? 'Active' : 'Inactive' },
-              ].map(row => (
-                <div key={row.label} className="flex items-start justify-between py-2 border-b border-white/5">
-                  <span className="text-[11px] text-on-surface-variant">{row.label}</span>
-                  <span className={`text-[11px] text-white font-medium max-w-[60%] text-right truncate ${row.mono ? 'font-mono' : ''} ${row.capitalize ? 'capitalize' : ''}`}>
-                    {row.value}
-                  </span>
+                { label: 'User ID',        value: user?._id?.slice(-8).toUpperCase() || '—', mono: true, color: C.cyan    },
+                { label: 'Phone',          value: user?.phone || '—',                        mono: true, color: C.blue    },
+                { label: 'Email',          value: user?.email || 'Not set',                  mono: false, color: C.violet  },
+                { label: 'Login Method',   value: user?.authProvider || 'local',             cap: true,   color: C.amber   },
+                { label: 'Status',         value: user?.isActive !== false ? 'Active' : 'Inactive', cap: false, color: user?.isActive !== false ? C.emerald : C.rose },
+              ].map((row, i) => (
+                <div key={row.label} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '10px 0',
+                  borderBottom: i < 4 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                }}>
+                  <span style={{ fontFamily: F, fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>{row.label}</span>
+                  <span style={{
+                    fontFamily: row.mono ? 'monospace' : F,
+                    fontSize: '11px', fontWeight: 600, color: row.color,
+                    textAlign: 'right', maxWidth: '60%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    textTransform: row.cap ? 'capitalize' : 'none',
+                  }}>{row.value}</span>
                 </div>
               ))}
             </div>
           </Section>
+
+          {/* ── Quick Actions ── */}
+          <Section title="Quick Actions" icon="bolt" accentColor={C.amber}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {[
+                { label: 'Change Password',   icon: 'lock',           color: C.amber   },
+                { label: 'Logout All Devices', icon: 'devices_other', color: C.rose    },
+                { label: 'Download My Data',   icon: 'download',       color: C.cyan    },
+              ].map(act => (
+                <button key={act.label}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    padding: '10px 12px', borderRadius: '6px', fontFamily: F, fontSize: '12px', fontWeight: 500,
+                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                    color: 'rgba(255,255,255,0.6)', cursor: 'pointer', transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = act.color + '30' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '15px', color: act.color }}>{act.icon}</span>
+                  {act.label}
+                </button>
+              ))}
+            </div>
+          </Section>
+
         </div>
       </div>
     </div>

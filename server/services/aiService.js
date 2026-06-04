@@ -4,16 +4,23 @@ const AiRequestLog = require('../models/AiRequestLog');
 const { getBusinessConfig } = require('../utils/businessCatalog');
 const { extractGeminiUsage } = require('../utils/tokenUsage');
 
-const generateMessage = async ({ shopId, prompt }) => {
+const generateMessage = async ({ shopId, prompt, raw = false }) => {
   const start = Date.now();
 
-  const shop = shopId
-    ? await Shop.findById(shopId).select('name businessType')
-    : null;
-  const biz = getBusinessConfig(shop?.businessType);
-  const fullPrompt = shop
-    ? `You are MarketPulse AI for the Pakistani shop "${shop.name}" (${biz.label}). ${biz.aiFocus}\nAnswer in Urdu-English mix if helpful. Be practical and brief.\n\nShopkeeper asks: ${prompt}`
-    : prompt;
+  // raw=true means the caller (copilot routes) has already built the full prompt
+  // — do NOT prepend a conflicting system message
+  let fullPrompt;
+  if (raw) {
+    fullPrompt = prompt;
+  } else {
+    const shop = shopId
+      ? await Shop.findById(shopId).select('name businessType')
+      : null;
+    const biz = getBusinessConfig(shop?.businessType);
+    fullPrompt = shop
+      ? `You are MarketPulse AI for the Pakistani shop "${shop.name}" (${biz.label}). ${biz.aiFocus}\nDo NOT start with a greeting. Go straight to the answer. Be complete and practical.\n\nShopkeeper asks: ${prompt}`
+      : prompt;
+  }
 
   try {
     const result = await model.generateContent(fullPrompt);

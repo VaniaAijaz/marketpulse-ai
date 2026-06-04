@@ -2,238 +2,272 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLogin, useVerifyOTP } from '../features/auth/authHooks'
+import LetterGlitch from '../components/ui/LetterGlitch'
+
+const F = "'Inter','Segoe UI',system-ui,sans-serif"
+
+/* ── input ───────────────────────────────────────────── */
+function Input({ type = 'text', placeholder, value, onChange, suffix, mono }) {
+  const [focused, setFocused] = useState(false)
+  return (
+    <div style={{ position: 'relative' }}>
+      <input
+        type={type} placeholder={placeholder} value={value} onChange={onChange}
+        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+        style={{
+          width: '100%', padding: '9px 12px', paddingRight: suffix ? '40px' : '12px',
+          borderRadius: '6px', fontFamily: mono ? 'monospace' : F,
+          fontWeight: 300, fontSize: '13px', outline: 'none', boxSizing: 'border-box',
+          background: focused ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.04)',
+          border: `1px solid ${focused ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.09)'}`,
+          color: '#fff', transition: 'all 0.15s',
+          backdropFilter: 'blur(6px)',
+        }}
+      />
+      {suffix && (
+        <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)' }}>
+          {suffix}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Label({ children }) {
+  return (
+    <p style={{ fontFamily: F, fontSize: '11px', fontWeight: 400, color: 'rgba(255,255,255,0.5)', margin: '0 0 5px', letterSpacing: '0.01em' }}>
+      {children}
+    </p>
+  )
+}
+
+function SegControl({ options, value, onChange }) {
+  return (
+    <div style={{ display: 'flex', gap: '2px', padding: '3px', borderRadius: '7px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+      {options.map(o => (
+        <button key={o.v} type="button" onClick={() => onChange(o.v)}
+          style={{
+            flex: 1, padding: '7px 0', borderRadius: '5px', fontFamily: F,
+            fontSize: '12px', fontWeight: value === o.v ? 500 : 400,
+            border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+            background: value === o.v ? 'rgba(255,255,255,0.1)' : 'transparent',
+            color: value === o.v ? '#fff' : 'rgba(255,255,255,0.35)',
+          }}>
+          {o.l}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 export default function Login() {
-  const navigate = useNavigate()
-  const loginMutation = useLogin()
+  const navigate          = useNavigate()
+  const loginMutation     = useLogin()
   const verifyOTPMutation = useVerifyOTP()
 
   const [loginMode, setLoginMode] = useState('password')
   const [loginWith, setLoginWith] = useState('email')
-  const [phone, setPhone] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [otp, setOtp] = useState('')
-  const [errorMsg, setErrorMsg] = useState('')
+  const [phone, setPhone]         = useState('')
+  const [email, setEmail]         = useState('')
+  const [password, setPassword]   = useState('')
+  const [otp, setOtp]             = useState('')
+  const [errorMsg, setErrorMsg]   = useState('')
+  const [showPass, setShowPass]   = useState(false)
 
-  const handleLogin = async (e) => {
-    e.preventDefault()
-    setErrorMsg('')
+  const handleLogin = (e) => {
+    e.preventDefault(); setErrorMsg('')
     if (loginMode === 'password') {
       if (loginWith === 'email' && !email.trim()) { setErrorMsg('Email is required'); return }
-      if (loginWith === 'phone' && !phone.trim()) { setErrorMsg('Phone number is required'); return }
-    } else if (!phone) {
-      setErrorMsg('Phone number is required'); return
-    }
-
-    if (loginMode === 'password') {
+      if (loginWith === 'phone' && !phone.trim()) { setErrorMsg('Phone is required'); return }
       const creds = loginWith === 'email' ? { email: email.trim(), password } : { phone, password }
       loginMutation.mutate(creds, {
-        onSuccess: (res) => {
-          if (res.success) navigate('/dashboard')
-          else setErrorMsg(res.error || 'Invalid credentials')
-        },
-        onError: (err) => setErrorMsg(err.response?.data?.error || 'Login failed. Make sure the server is running.'),
+        onSuccess: res => { if (res.success) navigate('/dashboard'); else setErrorMsg(res.error || 'Invalid credentials') },
+        onError:   err => setErrorMsg(err.response?.data?.error || 'Login failed'),
       })
     } else {
+      if (!phone.trim()) { setErrorMsg('Phone is required'); return }
       setLoginMode('otp-verify')
     }
   }
 
-  const handleVerifyOTP = async (e) => {
-    e.preventDefault()
-    setErrorMsg('')
-    if (!otp) { setErrorMsg('Please enter the OTP code'); return }
+  const handleVerifyOTP = (e) => {
+    e.preventDefault(); setErrorMsg('')
+    if (!otp) { setErrorMsg('Please enter the OTP'); return }
     verifyOTPMutation.mutate({ phone, otp }, {
-      onSuccess: (res) => {
-        if (res.success) navigate('/dashboard')
-        else setErrorMsg(res.error || 'Invalid OTP')
-      },
-      onError: (err) => setErrorMsg(err.response?.data?.error || 'OTP verification failed'),
+      onSuccess: res => { if (res.success) navigate('/dashboard'); else setErrorMsg(res.error || 'Invalid OTP') },
+      onError:   err => setErrorMsg(err.response?.data?.error || 'OTP verification failed'),
     })
   }
 
   return (
-    <div className="landing-page-root min-h-screen flex items-center justify-center relative px-6 text-white py-10">
-      {/* Background corner light reflection circles */}
-      <div className="absolute top-[10%] left-[20%] w-[350px] h-[350px] bg-[#1390ff]/5 rounded-full blur-[90px] pointer-events-none" />
-      <div className="absolute bottom-[10%] right-[20%] w-[350px] h-[350px] bg-[#005eff]/5 rounded-full blur-[90px] pointer-events-none" />
+    <div style={{ position: 'fixed', inset: 0, fontFamily: F, overflow: 'hidden' }}>
 
-      <div className="max-w-md w-full relative z-10">
+      {/* glitch bg */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+        <LetterGlitch
+          glitchColors={['#0d1f17', '#1a4a35', '#2d8a6b']}
+          glitchSpeed={60}
+          smooth={true}
+          outerVignette={true}
+          centerVignette={false}
+        />
+      </div>
 
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#1390ff] to-[#005eff] flex items-center justify-center shadow-[0_0_30px_rgba(19,144,255,0.45)] mb-3 transition-transform duration-300 hover:scale-105">
-            <span className="material-symbols-outlined text-white text-[28px] font-bold">storefront</span>
+      {/* center dark radial */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.78) 25%, rgba(0,0,0,0.1) 100%)' }} />
+
+      {/* centered card */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', overflowY: 'auto' }}>
+        <motion.div
+          initial={{ opacity: 0, y: 18, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0,  scale: 1    }}
+          transition={{ duration: 0.45, ease: 'easeOut' }}
+          style={{
+            width: '100%', maxWidth: '380px', minWidth: '255px',
+            /* no border, no bg box — just blur + very subtle bg */
+            background: 'rgba(0,0,0,0.55)',
+            backdropFilter: 'blur(28px)',
+            WebkitBackdropFilter: 'blur(28px)',
+            borderRadius: '12px',
+            padding: '36px 30px',
+            /* no border */
+          }}>
+
+          {/* logo — robotic icon, no box */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '28px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'rgba(255,255,255,0.75)' }}>
+              precision_manufacturing
+            </span>
+            <span style={{ fontFamily: F, fontWeight: 300, fontSize: '15px', color: 'rgba(255,255,255,0.85)', letterSpacing: '0.5px' }}>
+              MarketPulse AI
+            </span>
           </div>
-          <h1 className="font-display text-[22px] font-black tracking-tight text-white uppercase font-sora">Market Pulse AI</h1>
-        </div>
 
-        <div className="bg-white/5 backdrop-blur-xl p-8 md:p-10 rounded-3xl border border-white/10 shadow-[0_30px_70px_rgba(0,0,0,0.8)]">
-          <h2 className="text-[26px] font-extrabold text-white text-center tracking-tight font-sora uppercase">Welcome back</h2>
-          <p className="text-[12px] text-white/50 text-center mt-1 mb-7">Sign in to manage your business beautifully</p>
+          {/* heading */}
+          <h1 style={{ fontFamily: F, fontWeight: 300, fontSize: '24px', color: '#fff', margin: '0 0 4px', letterSpacing: '-0.2px' }}>
+            Sign in
+          </h1>
+          <p style={{ fontFamily: F, fontSize: '12px', fontWeight: 300, color: 'rgba(255,255,255,0.35)', margin: '0 0 24px' }}>
+            Enter your credentials to continue
+          </p>
 
+          {/* error */}
           {errorMsg && (
-            <div className="mb-5 p-3.5 rounded-xl border border-red-500/20 bg-red-500/10 text-red-400 text-[12px] font-medium flex items-center gap-2">
-              <span className="material-symbols-outlined text-[16px] text-red-400">error</span>
-              {errorMsg}
-            </div>
+            <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+              style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '8px 11px', borderRadius: '6px', marginBottom: '16px', background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.2)' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '13px', color: '#f43f5e' }}>error</span>
+              <span style={{ fontFamily: F, fontSize: '11px', fontWeight: 300, color: '#f43f5e' }}>{errorMsg}</span>
+            </motion.div>
           )}
 
           <AnimatePresence mode="wait">
             {loginMode !== 'otp-verify' ? (
-              <motion.form
-                key="login-form"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                onSubmit={handleLogin}
-                className="space-y-4"
-              >
+              <motion.form key="main" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '13px' }}>
+
+                <SegControl
+                  options={[{ v: 'password', l: 'Password' }, { v: 'otp-request', l: 'OTP' }]}
+                  value={loginMode} onChange={v => { setLoginMode(v); setErrorMsg('') }} />
+
                 {loginMode === 'password' && (
-                  <div className="flex gap-2 p-1 rounded-xl bg-black/40 border border-white/10">
-                    <button 
-                      type="button" 
-                      onClick={() => setLoginWith('email')} 
-                      className={`flex-1 py-2.5 rounded-lg text-[11px] font-bold tracking-wider uppercase transition-all ${loginWith === 'email' ? 'bg-[#1390ff]/20 text-[#1390ff] border border-[#1390ff]/30' : 'text-white/50 hover:text-white'}`}
-                    >
-                      Email
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => setLoginWith('phone')} 
-                      className={`flex-1 py-2.5 rounded-lg text-[11px] font-bold tracking-wider uppercase transition-all ${loginWith === 'phone' ? 'bg-[#1390ff]/20 text-[#1390ff] border border-[#1390ff]/30' : 'text-white/50 hover:text-white'}`}
-                    >
-                      Phone
-                    </button>
-                  </div>
+                  <SegControl
+                    options={[{ v: 'email', l: 'Email' }, { v: 'phone', l: 'Phone' }]}
+                    value={loginWith} onChange={setLoginWith} />
                 )}
 
-                {loginMode === 'password' && loginWith === 'email' ? (
-                  <div>
-                    <label className="block text-[11px] text-white/60 font-semibold mb-1.5 uppercase tracking-wider">Email</label>
-                    <input
-                      type="email"
-                      placeholder="you@gmail.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full p-3.5 rounded-xl text-[13px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:border-[#1390ff] focus:ring-1 focus:ring-[#1390ff] transition-all outline-none"
-                    />
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block text-[11px] text-white/60 font-semibold mb-1.5 uppercase tracking-wider">Phone Number</label>
-                    <input
-                      type="text"
-                      placeholder="+92 300 1234567"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full p-3.5 rounded-xl text-[13px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:border-[#1390ff] focus:ring-1 focus:ring-[#1390ff] transition-all outline-none"
-                    />
-                  </div>
-                )}
+                <div>
+                  <Label>{loginMode === 'password' && loginWith === 'email' ? 'Email' : 'Phone Number'}</Label>
+                  {loginMode === 'password' && loginWith === 'email'
+                    ? <Input type="email" placeholder="you@gmail.com" value={email} onChange={e => setEmail(e.target.value)} />
+                    : <Input type="text"  placeholder="+92 300 1234567" value={phone} onChange={e => setPhone(e.target.value)} />
+                  }
+                </div>
 
                 {loginMode === 'password' && (
                   <div>
-                    <label className="block text-[11px] text-white/60 font-semibold mb-1.5 uppercase tracking-wider">Password</label>
-                    <input
-                      type="password"
+                    <Label>Password</Label>
+                    <Input
+                      type={showPass ? 'text' : 'password'}
                       placeholder="Enter your password"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full p-3.5 rounded-xl text-[13px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:border-[#1390ff] focus:ring-1 focus:ring-[#1390ff] transition-all outline-none"
+                      onChange={e => setPassword(e.target.value)}
+                      suffix={
+                        <button type="button" onClick={() => setShowPass(v => !v)}
+                          style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.25)', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>
+                            {showPass ? 'visibility_off' : 'visibility'}
+                          </span>
+                        </button>
+                      }
                     />
                   </div>
                 )}
 
-                <button
-                  type="submit"
-                  disabled={loginMutation.isPending}
-                  className="w-full py-3.5 rounded-xl bg-[#1390ff] text-white font-bold text-[14px] shadow-[0_0_20px_rgba(19,144,255,0.45)] hover:shadow-[0_0_30px_rgba(19,144,255,0.65)] hover:bg-[#0f7bcc] transition-all duration-300 active:scale-[0.98] mt-2 uppercase tracking-wider"
-                >
-                  {loginMutation.isPending ? 'Signing in...' : loginMode === 'password' ? 'Sign In' : 'Send OTP'}
+                {/* submit */}
+                <button type="submit" disabled={loginMutation.isPending}
+                  style={{
+                    width: '100%', padding: '10px', borderRadius: '6px', fontFamily: F,
+                    fontSize: '13px', fontWeight: 400, letterSpacing: '0.2px',
+                    background: 'rgba(255,255,255,0.92)', color: '#000',
+                    border: 'none', cursor: 'pointer',
+                    opacity: loginMutation.isPending ? 0.6 : 1,
+                    transition: 'opacity 0.15s, background 0.15s',
+                  }}
+                  onMouseEnter={e => { if (!loginMutation.isPending) e.currentTarget.style.background = '#fff' }}
+                  onMouseLeave={e => { if (!loginMutation.isPending) e.currentTarget.style.background = 'rgba(255,255,255,0.92)' }}>
+                  {loginMutation.isPending ? 'Signing in...' : loginMode === 'password' ? 'Sign in' : 'Send OTP'}
+                </button>
+
+                {/* divider */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.07)' }} />
+                  <span style={{ fontFamily: F, fontSize: '11px', fontWeight: 300, color: 'rgba(255,255,255,0.2)' }}>or</span>
+                  <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.07)' }} />
+                </div>
+
+                {/* register */}
+                <button type="button" onClick={() => navigate('/register')}
+                  style={{
+                    width: '100%', padding: '10px', borderRadius: '6px', fontFamily: F,
+                    fontSize: '13px', fontWeight: 300,
+                    background: 'transparent', color: 'rgba(255,255,255,0.55)',
+                    border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)' }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.55)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}>
+                  Create an account
                 </button>
               </motion.form>
+
             ) : (
-              <motion.form
-                key="otp-form"
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                onSubmit={handleVerifyOTP}
-                className="space-y-4"
-              >
-                <div className="p-3.5 bg-[#1390ff]/10 rounded-xl border border-[#1390ff]/20 text-[#1390ff] text-[11px] text-center font-medium leading-relaxed">
-                  OTP sent to <span className="font-bold text-white">{phone}</span>. Use demo code <span className="font-extrabold font-mono bg-white/20 px-1.5 py-0.5 rounded text-white">1234</span>.
+              <motion.form key="otp" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onSubmit={handleVerifyOTP} style={{ display: 'flex', flexDirection: 'column', gap: '13px' }}>
+                <div style={{ padding: '9px 12px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <p style={{ fontFamily: F, fontSize: '12px', fontWeight: 300, color: 'rgba(255,255,255,0.5)', margin: 0 }}>
+                    OTP sent to <span style={{ color: '#fff' }}>{phone}</span>. Demo:{' '}
+                    <span style={{ fontFamily: 'monospace', color: 'rgba(255,255,255,0.8)' }}>1234</span>
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-[11px] text-white/60 font-semibold mb-1.5 uppercase tracking-wider">Enter OTP Code</label>
-                  <input
-                    type="text"
-                    placeholder="4-digit code"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    maxLength={4}
-                    className="w-full p-3.5 rounded-xl text-center text-[18px] font-mono tracking-widest bg-white/5 border border-white/10 text-white focus:border-[#1390ff] outline-none transition-all"
-                  />
+                  <Label>OTP Code</Label>
+                  <Input type="text" placeholder="4-digit code" value={otp} onChange={e => setOtp(e.target.value)} mono />
                 </div>
-                <button
-                  type="submit"
-                  disabled={verifyOTPMutation.isPending}
-                  className="w-full py-3.5 rounded-xl bg-[#1390ff] text-white font-bold text-[14px] shadow-[0_0_20px_rgba(19,144,255,0.45)] hover:shadow-[0_0_30px_rgba(19,144,255,0.65)] hover:bg-[#0f7bcc] transition-all duration-300 active:scale-[0.98] uppercase tracking-wider"
-                >
-                  {verifyOTPMutation.isPending ? 'Verifying...' : 'Verify & Sign In'}
+                <button type="submit" disabled={verifyOTPMutation.isPending}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', fontFamily: F, fontSize: '13px', fontWeight: 400, background: 'rgba(255,255,255,0.92)', color: '#000', border: 'none', cursor: 'pointer', opacity: verifyOTPMutation.isPending ? 0.6 : 1 }}>
+                  {verifyOTPMutation.isPending ? 'Verifying...' : 'Verify & sign in'}
                 </button>
-                <button 
-                  type="button" 
-                  onClick={() => { setLoginMode('otp-request'); setErrorMsg('') }} 
-                  className="w-full text-center text-[11px] text-white/40 hover:text-white transition-colors uppercase tracking-widest font-semibold mt-2"
-                >
-                  Resend OTP
+                <button type="button" onClick={() => { setLoginMode('otp-request'); setErrorMsg('') }}
+                  style={{ fontFamily: F, fontSize: '12px', fontWeight: 300, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'center' }}>
+                  ← Back
                 </button>
               </motion.form>
             )}
           </AnimatePresence>
 
-          <div className="mt-7 pt-5 border-t border-white/10 flex items-center justify-between text-[12px]">
-            {loginMode === 'password' ? (
-              <button 
-                type="button" 
-                onClick={() => { setLoginMode('otp-request'); setErrorMsg('') }} 
-                className="text-[#1390ff] font-bold hover:text-white transition-colors flex items-center gap-1.5 uppercase tracking-wide"
-              >
-                <span className="material-symbols-outlined text-[16px]">sms</span>
-                OTP Sign In
-              </button>
-            ) : (
-              <button 
-                type="button" 
-                onClick={() => { setLoginMode('password'); setErrorMsg('') }} 
-                className="text-[#1390ff] font-bold hover:text-white transition-colors flex items-center gap-1.5 uppercase tracking-wide"
-              >
-                <span className="material-symbols-outlined text-[16px]">lock</span>
-                Password Sign In
-              </button>
-            )}
-            <button 
-              type="button" 
-              onClick={() => navigate('/register')} 
-              className="text-[#1390ff] font-bold hover:text-white transition-colors uppercase tracking-wide"
-            >
-              Create Account
-            </button>
-          </div>
-        </div>
-
-        <div className="text-center mt-6">
-          <button 
-            onClick={() => navigate('/')} 
-            className="text-[11px] text-white/40 hover:text-white transition-colors flex items-center justify-center gap-1 mx-auto uppercase tracking-widest font-bold"
-          >
-            <span className="material-symbols-outlined text-[14px]">arrow_back</span>
-            Back to Home
-          </button>
-        </div>
+          <p style={{ fontFamily: F, fontSize: '10px', fontWeight: 300, color: 'rgba(255,255,255,0.12)', textAlign: 'center', marginTop: '24px', letterSpacing: '0.3px' }}>
+            © 2025 MarketPulse AI · Free forever
+          </p>
+        </motion.div>
       </div>
     </div>
   )

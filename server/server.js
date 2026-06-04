@@ -109,16 +109,17 @@ app.use('/api/ai', require('./routes/aiCopilot'));
 
 
 
-// 8. AI Route - now using service
-app.post('/api/ai/generate-message', checkAiLimit, asyncHandler(async (req, res) => {
+// 8. AI Route - no plan limit (free tool), auth required
+const auth = require('./middleware/auth');
+app.post('/api/ai/generate-message', auth, asyncHandler(async (req, res) => {
   const { shopId, prompt } = req.body;
+  if (!shopId || !prompt) return res.status(400).json({ success: false, error: 'shopId and prompt required' });
   
   const result = await generateMessage({ shopId, prompt });
   
   res.json({ 
     success: true, 
     message: result.message,
-    remaining: req.aiLimit.remaining - 1,
     usage: result.usage
   });
 }));

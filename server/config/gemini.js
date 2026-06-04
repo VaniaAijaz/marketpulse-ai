@@ -53,8 +53,8 @@ async function callModel(modelName, prompt, options = {}) {
   const url = `${BASE_URL}/${modelName}:generateContent?key=${API_KEY}`;
 
   const generationConfig = {
-    temperature:     options.schema ? 0.7 : 0.9,
-    maxOutputTokens: options.schema ? 8192 : 1024,
+    temperature:     options.schema ? 0.7 : 0.85,
+    maxOutputTokens: options.schema ? 8192 : 2048,
   };
 
   // Only force JSON mode for structured calls (recommendations, analytics)

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
-  useGenerateMessage, useAiLimit, useAiLogs,
+  useGenerateMessage,
   useLatestRecommendations, useGenerateRecommendations, useUpdateRecommendationStatus,
   useCopilotChat, useCopilotReport, useCopilotAdvise, useCopilotAlerts,
 } from '../../features/ai/aiHooks'
@@ -323,27 +323,36 @@ function ReportPanel({ shopId }) {
       {error && <p style={{ fontFamily: FONT, fontSize: '11px', color: P.rose, textAlign: 'center' }}>{error}</p>}
       {report && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+          {/* stats summary strip — real numbers from DB */}
           {report.context && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '14px' }}>
               {[
-                { l: 'Revenue', v: `Rs.${(period === 'monthly' ? report.context.revenue30d : report.context.revenue7d)?.toLocaleString()}`, c: P.emerald },
-                { l: 'Orders',  v: period === 'monthly' ? report.context.orders30d : report.context.orders7d, c: P.blue },
-                { l: 'Customers', v: report.context.totalCustomers, c: P.violet },
+                { l: 'Revenue',     v: `Rs.${(period === 'monthly' ? report.context.revenue30d : report.context.revenue7d)?.toLocaleString()}`, c: P.emerald },
+                { l: 'Orders',      v: period === 'monthly' ? report.context.orders30d : report.context.orders7d,     c: P.blue    },
+                { l: 'Cancel Rate', v: `${report.context.cancelRate}%`, c: parseFloat(report.context.cancelRate) > 15 ? P.rose : P.emerald },
+                { l: 'Customers',   v: report.context.totalCustomers,   c: P.violet  },
               ].map(s => (
-                <div key={s.l} style={{ textAlign: 'center', padding: '10px', borderRadius: R, background: s.c + '0d', border: `1px solid ${s.c}20` }}>
-                  <p style={{ fontFamily: FONT, fontWeight: 800, fontSize: '18px', color: s.c, margin: 0 }}>{s.v}</p>
-                  <p style={{ fontFamily: FONT, fontSize: '9px', color: P.dim, margin: '3px 0 0', textTransform: 'uppercase', letterSpacing: '.08em' }}>{s.l}</p>
+                <div key={s.l} style={{ padding: '10px 12px', borderRadius: R, background: 'rgba(255,255,255,0.03)', border: `1px solid rgba(255,255,255,0.08)` }}>
+                  <p style={{ fontFamily: FONT, fontWeight: 800, fontSize: '18px', color: s.c, margin: 0, lineHeight: 1 }}>{s.v}</p>
+                  <p style={{ fontFamily: FONT, fontSize: '9px', color: P.dim, margin: '4px 0 0', textTransform: 'uppercase', letterSpacing: '.08em' }}>{s.l}</p>
                 </div>
               ))}
             </div>
           )}
-          <div style={{ padding: '14px', borderRadius: R, background: 'rgba(255,255,255,0.03)', border: `1px solid ${P.border}`, fontFamily: FONT, fontSize: '13px', lineHeight: 1.75, color: P.text, whiteSpace: 'pre-wrap', marginBottom: '10px' }}>
+          {/* Report text — clean, no duplicate heading */}
+          <div style={{ padding: '16px 18px', borderRadius: R, background: 'rgba(255,255,255,0.03)', border: `1px solid rgba(255,255,255,0.08)`, fontFamily: FONT, fontSize: '13px', lineHeight: 1.8, color: P.text, whiteSpace: 'pre-wrap', marginBottom: '10px' }}>
             {report.report}
           </div>
-          <button onClick={() => navigator.clipboard.writeText(report.report)}
-            style={{ fontFamily: FONT, fontSize: '11px', fontWeight: 600, padding: '6px 14px', borderRadius: R, background: 'rgba(255,255,255,0.05)', border: `1px solid ${P.border}`, color: P.muted, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>content_copy</span> Copy Report
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => navigator.clipboard.writeText(report.report)}
+              style={{ fontFamily: FONT, fontSize: '11px', fontWeight: 600, padding: '6px 14px', borderRadius: R, background: 'rgba(255,255,255,0.05)', border: `1px solid ${P.border}`, color: P.muted, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>content_copy</span> Copy
+            </button>
+            <button onClick={() => setReport(null)}
+              style={{ fontFamily: FONT, fontSize: '11px', fontWeight: 600, padding: '6px 14px', borderRadius: R, background: 'rgba(255,255,255,0.05)', border: `1px solid ${P.border}`, color: P.muted, cursor: 'pointer' }}>
+              Clear
+            </button>
+          </div>
         </motion.div>
       )}
     </Card>
@@ -445,7 +454,6 @@ function AISettingsPanel({ shop }) {
   const [form, setForm] = useState({
     enabled:      shop?.aiSettings?.enabled      ?? false,
     systemPrompt: shop?.aiSettings?.systemPrompt || '',
-    dailyLimit:   shop?.aiSettings?.dailyLimit   || 50,
   })
   const [saved, setSaved] = useState(false)
 
@@ -478,15 +486,6 @@ function AISettingsPanel({ shop }) {
             style={{ width: '100%', fontFamily: FONT, fontSize: '12px', padding: '10px 13px', borderRadius: R, background: 'rgba(0,0,0,0.3)', border: `1px solid ${P.border}`, color: P.text, resize: 'none', outline: 'none', boxSizing: 'border-box' }}
             onFocus={e => e.target.style.borderColor = P.blue + '70'} onBlur={e => e.target.style.borderColor = P.border} />
         </div>
-        {/* Limit */}
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <p style={{ fontFamily: FONT, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: P.dim, margin: 0 }}>Daily Limit</p>
-            <p style={{ fontFamily: FONT, fontWeight: 800, fontSize: '14px', color: P.cyan, margin: 0 }}>{form.dailyLimit}</p>
-          </div>
-          <input type="range" min={10} max={500} step={10} value={form.dailyLimit}
-            onChange={e => setForm(p => ({ ...p, dailyLimit: parseInt(e.target.value) }))} style={{ width: '100%', accentColor: P.cyan }} />
-        </div>
         <button onClick={save} disabled={updateAI.isPending}
           style={{ fontFamily: FONT, fontWeight: 700, fontSize: '13px', padding: '12px', borderRadius: R, background: saved ? P.emerald : P.blue, color: '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: updateAI.isPending ? .6 : 1 }}>
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>{saved ? 'check_circle' : 'save'}</span>
@@ -494,40 +493,6 @@ function AISettingsPanel({ shop }) {
         </button>
       </div>
     </Card>
-  )
-}
-
-// ── Daily Usage (compact) ─────────────────────────────────
-function UsageBar({ shopId }) {
-  const { data: limitRes } = useAiLimit(shopId)
-  const { data: logsRes  } = useAiLogs(shopId)
-  const limit  = limitRes?.data || {}
-  const logs   = logsRes?.data?.logs || []
-  const used   = limit.usedToday ?? 0
-  const cap    = limit.limit ?? 50
-  const pct    = cap > 0 ? Math.min(used / cap, 1) : 0
-  const barClr = pct >= .9 ? P.rose : pct >= .7 ? P.amber : P.cyan
-
-  return (
-    <div style={{ padding: '14px 18px', borderRadius: R, background: P.card, border: `1px solid ${P.border}`, display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px', fontFamily: FONT }}>
-      <span className="material-symbols-outlined" style={{ fontSize: '18px', color: P.cyan }}>speed</span>
-      <div style={{ flex: 1 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: P.muted }}>Daily AI Usage</span>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: barClr }}>{used} / {cap} used · {cap - used} remaining</span>
-        </div>
-        <div style={{ height: '5px', borderRadius: '3px', background: 'rgba(255,255,255,0.07)' }}>
-          <div style={{ height: '100%', borderRadius: '3px', background: barClr, width: `${pct * 100}%`, transition: 'width .8s ease' }} />
-        </div>
-      </div>
-      {logs.length > 0 && (
-        <div style={{ display: 'flex', gap: '4px' }}>
-          {logs.slice(0, 5).map((l, i) => (
-            <div key={i} style={{ width: '6px', height: '6px', borderRadius: '50%', background: l.status === 'success' ? P.emerald : P.rose }} title={l.endpoint} />
-          ))}
-        </div>
-      )}
-    </div>
   )
 }
 
@@ -585,9 +550,6 @@ export default function AIAgent() {
           {activeShop.businessType} · AI On
         </span>
       </div>
-
-      {/* Usage bar — compact, always visible */}
-      <UsageBar shopId={shopId} />
 
       {/* All modules on one page — 2 column grid on large, 1 on small */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 520px), 1fr))', gap: '20px' }}>

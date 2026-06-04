@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Sidebar from './Sidebar'
 import Navbar from './Navbar'
@@ -11,6 +11,47 @@ import { useCreateOrder, useSimulatePayment } from '../../features/orders/orderH
 import { useUpdateShopPlan } from '../../features/shops/shopHooks'
 import { useProductsByShop } from '../../features/products/productHooks'
 import { useBootstrapShop } from '../../hooks/useBootstrapShop'
+
+const sharedFormField = 'w-full p-3.5 rounded-[6px] text-[13px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:border-[#1390ff] focus:ring-1 focus:ring-[#1390ff] transition-all outline-none'
+const sharedFormCard = 'bg-white/5 border border-white/10 rounded-[6px] p-4 md:p-5 shadow-[0_20px_80px_rgba(0,0,0,0.12)]'
+
+// PKR formatter
+const formatPKR = (val) => {
+  const n = Number(val || 0)
+  return `Rs.${n.toFixed(2)}`
+}
+
+// Minimal custom select (shadcn-like appearance)
+function CustomSelect({ value, onChange, options = [], placeholder }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    function onDoc(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [])
+
+  const selected = options.find(o => o.value === value)
+
+  return (
+    <div ref={ref} className="relative w-full">
+      <button type="button" onClick={() => setOpen(s => !s)} className={`${sharedFormField} flex items-center justify-between`}>
+        <span className={`truncate ${selected ? 'text-white' : 'text-white/60'}`}>{selected?.label || placeholder}</span>
+        <span className="material-symbols-outlined text-[16px] text-white/60">expand_more</span>
+      </button>
+      {open && (
+        <ul className="absolute z-50 mt-2 w-full max-h-48 overflow-auto rounded-[6px] bg-white text-black border border-neutral-200 shadow-md">
+          {options.map(opt => (
+            <li key={opt.value} onClick={() => { onChange(opt.value); setOpen(false) }} className="px-3 py-2 hover:bg-neutral-100 cursor-pointer">{opt.label}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
 
 // ─── Modal Backdrop ────────────────────────────────────────────────────
 function ModalBackdrop({ onClose, children }) {
@@ -485,77 +526,88 @@ function CreateOrderModal({ onClose }) {
     )
   }
 
+  const F = "'Inter','Segoe UI',system-ui,sans-serif"
+  const inputStyle = { fontFamily: F, fontSize: '13px', padding: '9px 12px', borderRadius: '6px', background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', width: '100%', boxSizing: 'border-box' }
+  const labelStyle = { fontFamily: F, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.09em', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '5px' }
+  const focusIn  = e => e.target.style.borderColor = 'rgba(59,130,246,0.7)'
+  const focusOut = e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'
+
   return (
     <ModalBackdrop onClose={onClose}>
-      <div className="flex items-center gap-3 mb-5">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1390ff]/20 to-[#005eff]/20 flex items-center justify-center border border-[#1390ff]/30">
-          <span className="material-symbols-outlined text-[#1390ff] text-[20px] font-bold">shopping_cart_checkout</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+        <div style={{ width: '34px', height: '34px', borderRadius: '6px', background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '17px', color: '#3b82f6' }}>add_shopping_cart</span>
         </div>
         <div>
-          <h2 className="text-[20px] font-extrabold text-white font-sora uppercase">Create Order</h2>
-          <p className="text-[11px] text-white/50">Log a new transaction to the ledger</p>
+          <p style={{ fontFamily: F, fontWeight: 700, fontSize: '15px', color: '#fff', margin: 0 }}>Create Order</p>
+          <p style={{ fontFamily: F, fontSize: '11px', color: 'rgba(255,255,255,0.4)', margin: '2px 0 0' }}>Log a new transaction</p>
         </div>
       </div>
-      {error && <div className="mb-3 p-3.5 rounded-xl border border-red-500/20 bg-red-500/10 text-red-400 text-[12px] font-medium flex items-center gap-2"><span className="material-symbols-outlined text-[16px] text-red-400">error</span>{error}</div>}
-      <form onSubmit={handleSubmit} className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+      {error && (
+        <div style={{ fontFamily: F, fontSize: '12px', padding: '9px 12px', borderRadius: '6px', background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.25)', color: '#f43f5e', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>error</span>{error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '62vh', overflowY: 'auto', paddingRight: '2px' }}>
+
+        {/* Customer info */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
           <div>
-            <label className="block text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1.5">Customer Phone *</label>
-            <input required value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="+92 300 0000000" className="w-full p-3.5 rounded-xl text-[13px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:border-[#1390ff] outline-none transition-all" />
+            <label style={labelStyle}>Phone *</label>
+            <input required value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="+92 300 0000000" style={inputStyle} onFocus={focusIn} onBlur={focusOut} />
           </div>
           <div>
-            <label className="block text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1.5">Customer Name</label>
-            <input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="e.g. Ali Khan" className="w-full p-3.5 rounded-xl text-[13px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:border-[#1390ff] outline-none transition-all" />
+            <label style={labelStyle}>Customer Name</label>
+            <input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Ali Khan" style={inputStyle} onFocus={focusIn} onBlur={focusOut} />
           </div>
         </div>
 
         <div>
-          <label className="block text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1.5">Customer Email (Optional)</label>
-          <input type="email" value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} placeholder="customer@email.com" className="w-full p-3.5 rounded-xl text-[13px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:border-[#1390ff] outline-none transition-all" />
+          <label style={labelStyle}>Email (Optional)</label>
+          <input type="email" value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} placeholder="customer@email.com" style={inputStyle} onFocus={focusIn} onBlur={focusOut} />
         </div>
 
+        {/* Order items */}
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Order Items</label>
-            <button type="button" onClick={addItem} className="text-[10px] text-[#1390ff] hover:text-white flex items-center gap-1 font-bold transition-colors uppercase tracking-wider">
-              <span className="material-symbols-outlined text-[14px]">add</span>Add Item
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <label style={{ ...labelStyle, margin: 0 }}>Order Items</label>
+            <button type="button" onClick={addItem}
+              style={{ fontFamily: F, fontSize: '11px', fontWeight: 600, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>add</span>Add Item
             </button>
           </div>
-          <div className="space-y-2">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {items.map((item, idx) => (
-              <div key={idx} className="bg-white/5 rounded-xl p-3 border border-white/10 space-y-2">
-                <div className="flex gap-2">
+              <div key={idx} style={{ padding: '10px', borderRadius: '6px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
                   {products.length > 0 ? (
-                    <select
-                      value={item.productId}
-                      onChange={e => updateItem(idx, 'productId', e.target.value)}
-                      className="flex-1 p-2 rounded-lg text-[12px] bg-black border border-white/10 text-white outline-none"
-                    >
+                    <select value={item.productId} onChange={e => updateItem(idx, 'productId', e.target.value)}
+                      style={{ ...inputStyle, flex: 1, background: '#111', color: '#fff' }}>
                       <option value="">Select product...</option>
-                      {products.map(p => <option key={p._id} value={p._id}>{p.name} (${p.pricing?.sellingPrice || p.price})</option>)}
+                      {products.map(p => <option key={p._id} value={p._id}>{p.name} (Rs.{p.pricing?.sellingPrice || p.price})</option>)}
                     </select>
                   ) : (
-                    <input
-                      value={item.name}
-                      onChange={e => updateItem(idx, 'name', e.target.value)}
-                      placeholder="Item name"
-                      className="flex-1 p-2 rounded-lg text-[12px] bg-black/40 border border-white/10 text-white placeholder:text-white/20 outline-none"
-                    />
+                    <input value={item.name} onChange={e => updateItem(idx, 'name', e.target.value)} placeholder="Item name"
+                      style={{ ...inputStyle, flex: 1 }} onFocus={focusIn} onBlur={focusOut} />
                   )}
                   {items.length > 1 && (
-                    <button type="button" onClick={() => removeItem(idx)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/20 text-red-400 transition-colors">
-                      <span className="material-symbols-outlined text-[16px]">delete</span>
+                    <button type="button" onClick={() => removeItem(idx)}
+                      style={{ width: '30px', height: '36px', borderRadius: '6px', background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.2)', color: '#f43f5e', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>delete</span>
                     </button>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                   <div>
-                    <label className="text-[9px] text-white/40 uppercase tracking-widest mb-1 block">Price ($)</label>
-                    <input type="number" min="0" step="0.01" value={item.price} readOnly className="w-full p-2 rounded-lg text-[12px] bg-white/5 border border-white/5 text-white/50 font-mono outline-none cursor-not-allowed" />
+                    <label style={{ ...labelStyle, fontSize: '9px' }}>Price (Rs.)</label>
+                    <input type="number" value={item.price} readOnly style={{ ...inputStyle, fontFamily: "'Courier New',monospace", opacity: .5, cursor: 'not-allowed' }} />
                   </div>
                   <div>
-                    <label className="text-[9px] text-white/40 uppercase tracking-widest mb-1 block">Quantity</label>
-                    <input type="number" min="1" value={item.quantity} onChange={e => updateItem(idx, 'quantity', e.target.value)} className="w-full p-2 rounded-lg text-[12px] bg-black/40 border border-white/10 text-white font-mono outline-none" />
+                    <label style={{ ...labelStyle, fontSize: '9px' }}>Quantity</label>
+                    <input type="number" min="1" value={item.quantity} onChange={e => updateItem(idx, 'quantity', e.target.value)}
+                      style={{ ...inputStyle, fontFamily: "'Courier New',monospace" }} onFocus={focusIn} onBlur={focusOut} />
                   </div>
                 </div>
               </div>
@@ -563,49 +615,47 @@ function CreateOrderModal({ onClose }) {
           </div>
         </div>
 
+        {/* Notes */}
         <div>
-          <label className="block text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1.5">Notes</label>
-          <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Order notes..." className="w-full p-3.5 rounded-xl text-[13px] bg-white/5 border border-white/10 text-white placeholder:text-white/20 resize-none focus:border-[#1390ff] outline-none transition-all" />
+          <label style={labelStyle}>Notes</label>
+          <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Order notes..."
+            style={{ ...inputStyle, resize: 'none' }} onFocus={focusIn} onBlur={focusOut} />
         </div>
 
-        {/* Payment Simulation Setup */}
-        <div className="bg-white/5 rounded-xl p-4 border border-white/10 space-y-3">
-          <label className="block text-[10px] text-white/40 uppercase tracking-widest font-bold">Payment Setup & Simulation</label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* Gateway */}
+        <div style={{ padding: '12px', borderRadius: '6px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <label style={{ ...labelStyle, marginBottom: '8px' }}>Payment Setup</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <div>
-              <label className="text-[9px] text-white/40 uppercase tracking-widest mb-1 block">Simulated Gateway</label>
-              <select
-                value={gateway}
-                onChange={e => setGateway(e.target.value)}
-                className="w-full p-3 rounded-xl text-[12px] bg-black border border-white/10 text-white outline-none focus:border-[#1390ff]"
-              >
-                <option value="cod">Mock COD (Cash Mode)</option>
-                <option value="jazzcash">Mock JazzCash Gateway</option>
-                <option value="easypaisa">Mock Easypaisa Gateway</option>
-                <option value="stripe">Mock Stripe Card Mode</option>
+              <label style={{ ...labelStyle, fontSize: '9px' }}>Simulated Gateway</label>
+              <select value={gateway} onChange={e => setGateway(e.target.value)}
+                style={{ ...inputStyle, background: '#111', color: '#fff' }}>
+                <option value="cod">Mock COD (Cash)</option>
+                <option value="jazzcash">Mock JazzCash</option>
+                <option value="easypaisa">Mock Easypaisa</option>
+                <option value="stripe">Mock Stripe Card</option>
               </select>
             </div>
-            <div className="flex flex-col justify-end">
-              <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] text-white/60 hover:text-white p-3 border border-white/10 rounded-xl hover:bg-white/5 transition-all h-[46px]">
-                <input
-                  type="checkbox"
-                  checked={forceFail}
-                  onChange={e => setForceFail(e.target.checked)}
-                  className="rounded bg-black border-white/10 text-[#1390ff] focus:ring-0 focus:ring-offset-0"
-                />
-                Force Payment Failure
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', width: '100%', boxSizing: 'border-box' }}>
+                <input type="checkbox" checked={forceFail} onChange={e => setForceFail(e.target.checked)} style={{ accentColor: '#f43f5e' }} />
+                <span style={{ fontFamily: F, fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>Force Failure</span>
               </label>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between p-3 bg-[#1390ff]/5 rounded-xl border border-[#1390ff]/20">
-          <span className="text-[12px] text-white/60 font-semibold">Total Amount</span>
-          <span className="text-[20px] font-display font-black text-[#1390ff]">${total.toFixed(2)}</span>
+        {/* Total */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '6px', background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.18)' }}>
+          <span style={{ fontFamily: F, fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Total Amount</span>
+          <span style={{ fontFamily: F, fontWeight: 800, fontSize: '20px', color: '#3b82f6' }}>Rs.{total.toLocaleString()}</span>
         </div>
 
-        <button type="submit" disabled={createOrderMutation.isPending || !activeShop} className="w-full py-3 rounded-xl bg-[#1390ff] text-white font-bold text-[14px] shadow-[0_0_20px_rgba(19,144,255,0.45)] hover:shadow-[0_0_30px_rgba(19,144,255,0.65)] hover:bg-[#0f7bcc] transition-all duration-300 active:scale-[0.98] uppercase tracking-wider disabled:opacity-50">
-          {createOrderMutation.isPending ? 'Creating order...' : `Place Order & Checkout — $${total.toFixed(2)} →`}
+        <button type="submit" disabled={createOrderMutation.isPending || !activeShop}
+          style={{ fontFamily: F, fontWeight: 600, fontSize: '13px', padding: '11px', borderRadius: '6px', background: '#3b82f6', color: '#fff', border: 'none', cursor: 'pointer', opacity: createOrderMutation.isPending || !activeShop ? .5 : 1, transition: 'background .15s' }}
+          onMouseEnter={e => { if (!createOrderMutation.isPending) e.currentTarget.style.background = '#2563eb' }}
+          onMouseLeave={e => { if (!createOrderMutation.isPending) e.currentTarget.style.background = '#3b82f6' }}>
+          {createOrderMutation.isPending ? 'Creating...' : `Place Order & Checkout — Rs.${total.toLocaleString()} →`}
         </button>
       </form>
     </ModalBackdrop>
@@ -715,6 +765,94 @@ function UpgradePlanModal({ onClose }) {
 }
 
 // ─── Dashboard Layout ────────────────────────────────────────────────────
+// ─── Stock Toast Host ─────────────────────────────────────────────────────
+// Watches the notification store and pops a visible toast for new stock alerts
+const TOAST_ICONS = {
+  stock_out: { icon: 'report',       color: '#f43f5e', bg: 'rgba(244,63,94,0.12)',  border: 'rgba(244,63,94,0.28)' },
+  stock_low: { icon: 'warning',      color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.28)' },
+  default:   { icon: 'notifications', color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', border: 'rgba(59,130,246,0.25)' },
+}
+const F_TOAST = "'Inter','Segoe UI',system-ui,sans-serif"
+
+function StockToastHost() {
+  const notifications = useUIStore(s => s.notifications)
+  const [queue, setQueue] = useState([])
+  const shownRef = useRef(new Set())
+
+  // watch for new notifications and add to toast queue
+  useEffect(() => {
+    notifications.forEach(n => {
+      if (!shownRef.current.has(n.id) && (n.type === 'stock_out' || n.type === 'stock_low')) {
+        shownRef.current.add(n.id)
+        setQueue(q => [...q, { ...n, toastId: `${n.id}-${Date.now()}` }])
+      }
+    })
+  }, [notifications])
+
+  const dismiss = (toastId) => setQueue(q => q.filter(t => t.toastId !== toastId))
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999,
+      display: 'flex', flexDirection: 'column', gap: '8px',
+      maxWidth: '340px', width: '100%',
+    }}>
+      <AnimatePresence>
+        {queue.slice(0, 4).map(toast => {
+          const cfg = TOAST_ICONS[toast.type] || TOAST_ICONS.default
+          return (
+            <motion.div
+              key={toast.toastId}
+              initial={{ opacity: 0, x: 40, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0,  scale: 1    }}
+              exit={{    opacity: 0, x: 40,  scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+              onAnimationComplete={() => {
+                // auto-dismiss after 6 seconds
+                setTimeout(() => dismiss(toast.toastId), 6000)
+              }}
+              style={{
+                display: 'flex', alignItems: 'flex-start', gap: '10px',
+                padding: '12px 14px',
+                background: '#0a0a0a',
+                border: `1px solid ${cfg.border}`,
+                borderRadius: '8px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                fontFamily: F_TOAST,
+              }}>
+              {/* icon */}
+              <div style={{
+                width: '30px', height: '30px', borderRadius: '6px', flexShrink: 0,
+                background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '15px', color: cfg.color }}>{cfg.icon}</span>
+              </div>
+
+              {/* text */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontFamily: F_TOAST, fontSize: '12px', fontWeight: 600, color: cfg.color, margin: '0 0 2px' }}>
+                  {toast.type === 'stock_out' ? 'Out of Stock' : 'Low Stock Alert'}
+                </p>
+                <p style={{ fontFamily: F_TOAST, fontSize: '11px', color: 'rgba(255,255,255,0.6)', margin: 0, lineHeight: 1.4 }}>
+                  {toast.text}
+                </p>
+              </div>
+
+              {/* close */}
+              <button onClick={() => dismiss(toast.toastId)}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: '2px', flexShrink: 0 }}
+                onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+                onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}>
+                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+              </button>
+            </motion.div>
+          )
+        })}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 export default function DashboardLayout() {
   const activeModal = useUIStore((s) => s.activeModal)
   const setActiveModal = useUIStore((s) => s.setActiveModal)
@@ -725,20 +863,20 @@ export default function DashboardLayout() {
 
   return (
     <div className="min-h-screen bg-[#030303] text-white flex relative overflow-hidden">
-      {/* Background reflections for premium dark dashboard theme */}
+      {/* Background reflections */}
       <div className="absolute bottom-0 left-0 w-[45vh] h-[45vh] bg-[#1390ff]/5 rounded-full blur-[120px] pointer-events-none z-0" />
       <div className="absolute bottom-0 right-0 w-[45vh] h-[45vh] bg-[#005eff]/5 rounded-full blur-[120px] pointer-events-none z-0" />
 
       {/* Mobile Sidebar Overlay Backdrop */}
       {sidebarOpen && (
-        <div 
-          onClick={toggleSidebar} 
+        <div
+          onClick={toggleSidebar}
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
         />
       )}
 
       <Sidebar />
-      <div 
+      <div
         className={`flex-1 flex flex-col min-h-screen relative z-10 transition-all duration-300 ${
           sidebarOpen ? 'lg:pl-[240px]' : 'lg:pl-[56px]'
         }`}
@@ -754,6 +892,9 @@ export default function DashboardLayout() {
       {activeModal === 'add-customer'  && <AddCustomerModal  onClose={close} />}
       {activeModal === 'create-order'  && <CreateOrderModal  onClose={close} />}
       {activeModal === 'upgrade-plan'  && <UpgradePlanModal  onClose={close} />}
+
+      {/* Global stock toast notifications */}
+      <StockToastHost />
     </div>
   )
 }

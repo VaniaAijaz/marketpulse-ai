@@ -1,444 +1,418 @@
 ﻿import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useCustomersByShop, useInactiveCustomers, useTopCustomers, useAddCustomerTag, useToggleBlockCustomer, useBackfillCustomerStats } from '../../features/customers/customerHooks'
+import {
+  useCustomersByShop, useInactiveCustomers, useTopCustomers,
+  useAddCustomerTag, useToggleBlockCustomer, useBackfillCustomerStats,
+} from '../../features/customers/customerHooks'
 import useAuthStore from '../../store/useAuthStore'
 
-// Analytics-matching color palette
-const C = { blue: '#1390ff', purple: '#7c3aed', cyan: '#00d4ff', green: '#22c55e', amber: '#f59e0b', pink: '#f43f5e', teal: '#14b8a6', violet: '#8b5cf6' }
+const P = {
+  card: '#000000', border: 'rgba(255,255,255,0.08)',
+  text: '#ffffff', muted: 'rgba(255,255,255,0.5)', dim: 'rgba(255,255,255,0.25)',
+  blue: '#3b82f6', indigo: '#6366f1', violet: '#8b5cf6', emerald: '#10b981',
+  slate: '#94a3b8', rose: '#f43f5e', amber: '#f59e0b', cyan: '#06b6d4',
+}
+const FONT = "'Inter','Segoe UI',system-ui,sans-serif"
+const R = '6px', R2 = '8px'
 
-const SEGMENT_CONFIG = {
-  vip:      { color: C.amber,  bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.3)',  icon: 'workspace_premium' },
-  regular:  { color: C.teal,   bg: 'rgba(20,184,166,0.12)',  border: 'rgba(20,184,166,0.3)',  icon: 'repeat' },
-  active:   { color: C.green,  bg: 'rgba(34,197,94,0.12)',   border: 'rgba(34,197,94,0.3)',   icon: 'trending_up' },
-  new:      { color: C.blue,   bg: 'rgba(19,144,255,0.12)',  border: 'rgba(19,144,255,0.3)',  icon: 'person_add' },
-  inactive: { color: '#6b7280',bg: 'rgba(107,114,128,0.12)', border: 'rgba(107,114,128,0.3)', icon: 'schedule' },
-  blocked:  { color: C.pink,   bg: 'rgba(244,63,94,0.12)',   border: 'rgba(244,63,94,0.3)',   icon: 'block' },
+const SEG_CFG = {
+  vip:      { color: P.amber,   icon: 'workspace_premium' },
+  regular:  { color: P.cyan,    icon: 'repeat'            },
+  active:   { color: P.emerald, icon: 'trending_up'       },
+  new:      { color: P.blue,    icon: 'person_add'        },
+  inactive: { color: P.slate,   icon: 'schedule'          },
+  blocked:  { color: P.rose,    icon: 'block'             },
 }
 
-function SegmentBadge({ segment }) {
-  const cfg = SEGMENT_CONFIG[segment] || SEGMENT_CONFIG.new
+const SEGMENTS = ['', 'vip', 'active', 'regular', 'new', 'inactive', 'blocked']
+
+function SegBadge({ segment }) {
+  const cfg = SEG_CFG[segment] || SEG_CFG.new
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border capitalize"
-      style={{ color: cfg.color, background: cfg.bg, borderColor: cfg.border }}>
-      <span className="material-symbols-outlined text-[11px]">{cfg.icon}</span>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontFamily: FONT, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', padding: '2px 8px', borderRadius: '4px', color: cfg.color, background: cfg.color + '18', border: `1px solid ${cfg.color}30` }}>
       {segment || 'new'}
     </span>
   )
 }
 
-function StatCard({ label, value, icon, color, delay = 0 }) {
-  return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
-      className="rounded-xl p-4 relative overflow-hidden"
-      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-      <div className="absolute -right-3 -top-3 w-14 h-14 rounded-full blur-xl" style={{ background: color + '30' }} />
-      <div className="relative z-10">
-        <div className="flex items-center gap-1.5 mb-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: color + '22' }}>
-            <span className="material-symbols-outlined text-[14px]" style={{ color }}>{icon}</span>
-          </div>
-          <span className="text-[9px] text-white/40 font-semibold uppercase tracking-wider">{label}</span>
-        </div>
-        <p className="font-display font-black text-[18px] text-white leading-none">{value}</p>
-      </div>
-    </motion.div>
-  )
-}
-
+// ── Customer Detail Drawer ────────────────────────────────
 function CustomerDrawer({ customer, onClose }) {
-  const [tag, setTag] = useState('')
-  const addTagMutation = useAddCustomerTag()
-  const blockMutation = useToggleBlockCustomer()
+  const [tag, setTag]         = useState('')
+  const addTagMut             = useAddCustomerTag()
+  const blockMut              = useToggleBlockCustomer()
+  const cfg                   = SEG_CFG[customer.segment] || SEG_CFG.new
+  const initials              = (customer.name || customer.phone || '?').slice(0, 2).toUpperCase()
+  const totalSpent            = customer.stats?.totalSpent   || 0
+  const totalOrders           = customer.stats?.totalOrders  || 0
+  const avgOrder              = totalOrders > 0 ? Math.round(totalSpent / totalOrders) : 0
 
   const handleAddTag = () => {
     if (!tag.trim()) return
-    addTagMutation.mutate({ customerId: customer._id, tag: tag.trim() }, { onSuccess: () => setTag('') })
+    addTagMut.mutate({ customerId: customer._id, tag: tag.trim() }, { onSuccess: () => setTag('') })
   }
 
-  const initials = (customer.name || customer.phone || '?').slice(0, 2).toUpperCase()
-  const cfg = SEGMENT_CONFIG[customer.segment] || SEGMENT_CONFIG.new
-  const totalSpent = customer.stats?.totalSpent || 0
-  const totalOrders = customer.stats?.totalOrders || 0
-  const avgOrder = customer.stats?.avgOrderValue || (totalOrders > 0 ? totalSpent / totalOrders : 0)
+  const Row = ({ l, v, mono = false }) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: `1px solid ${P.border}` }}>
+      <span style={{ fontFamily: FONT, fontSize: '11px', color: P.muted }}>{l}</span>
+      <span style={{ fontFamily: mono ? "'Courier New',monospace" : FONT, fontSize: '11px', fontWeight: 600, color: P.text }}>{v}</span>
+    </div>
+  )
 
   return (
-    <motion.div
-      initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="fixed right-0 top-0 h-full w-full max-w-[400px] z-50 flex flex-col shadow-[-30px_0_80px_rgba(0,0,0,0.6)]"
-      style={{ background: 'linear-gradient(180deg, #0d1b35 0%, #0a1628 100%)', borderLeft: '1px solid rgba(255,255,255,0.1)' }}
-    >
+    <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+      transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+      style={{ position: 'fixed', right: 0, top: 0, height: '100%', width: '360px', background: '#050505', borderLeft: `1px solid ${P.border}`, zIndex: 50, display: 'flex', flexDirection: 'column', boxShadow: '-20px 0 60px rgba(0,0,0,.7)', fontFamily: FONT }}>
+
       {/* Header */}
-      <div className="p-6 flex items-start justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-[18px] text-white relative"
-            style={{ background: customer.isBlocked ? 'rgba(244,63,94,0.3)' : `linear-gradient(135deg, ${C.blue}88, ${C.purple}88)`, border: `1px solid ${customer.isBlocked ? C.pink : C.blue}44` }}>
+      <div style={{ padding: '20px', borderBottom: `1px solid ${P.border}`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '42px', height: '42px', borderRadius: R2, background: customer.isBlocked ? P.rose + '25' : P.blue + '25', border: `1px solid ${customer.isBlocked ? P.rose : P.blue}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT, fontWeight: 800, fontSize: '15px', color: customer.isBlocked ? P.rose : P.blue, flexShrink: 0 }}>
             {initials}
-            <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
-              style={{ background: cfg.color, border: '2px solid #0a1628' }}>
-              <span className="material-symbols-outlined text-[9px] text-white">{cfg.icon}</span>
-            </div>
           </div>
           <div>
-            <p className="font-bold text-white text-[17px] leading-tight">{customer.name || 'Unknown'}</p>
-            <p className="text-[12px] font-mono mt-0.5" style={{ color: C.cyan }}>{customer.phone}</p>
-            <SegmentBadge segment={customer.segment} />
+            <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: '15px', color: P.text, margin: 0 }}>{customer.name || 'Unknown'}</p>
+            <p style={{ fontFamily: "'Courier New',monospace", fontSize: '11px', color: P.cyan, margin: '3px 0' }}>{customer.phone}</p>
+            <SegBadge segment={customer.segment} />
           </div>
         </div>
-        <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors">
-          <span className="material-symbols-outlined text-[18px]">close</span>
+        <button onClick={onClose} style={{ width: '28px', height: '28px', borderRadius: R, background: 'none', border: `1px solid ${P.border}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: P.muted }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = P.text }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = P.muted }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-5">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard label="Total Spent" value={`Rs.${totalSpent.toLocaleString()}`} icon="payments" color={C.green} delay={0.05} />
-          <StatCard label="Total Orders" value={totalOrders} icon="shopping_bag" color={C.blue} delay={0.1} />
-          <StatCard label="Avg Order" value={`Rs.${Math.round(avgOrder).toLocaleString()}`} icon="analytics" color={C.purple} delay={0.15} />
-          <StatCard label="Visit Count" value={customer.stats?.visitCount || totalOrders} icon="storefront" color={C.amber} delay={0.2} />
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+        {/* Stats grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          {[
+            { l: 'Total Spent',  v: `Rs.${totalSpent.toLocaleString()}`,  c: P.emerald },
+            { l: 'Orders',       v: totalOrders,                           c: P.blue    },
+            { l: 'Avg Order',    v: `Rs.${avgOrder.toLocaleString()}`,     c: P.violet  },
+            { l: 'Visits',       v: customer.stats?.visitCount || totalOrders, c: P.amber },
+          ].map(s => (
+            <div key={s.l} style={{ background: P.card, border: `1px solid ${s.c}20`, borderRadius: R, padding: '12px' }}>
+              <p style={{ fontFamily: FONT, fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: P.dim, margin: '0 0 4px' }}>{s.l}</p>
+              <p style={{ fontFamily: FONT, fontWeight: 800, fontSize: '18px', color: s.c, margin: 0, lineHeight: 1 }}>{s.v}</p>
+            </div>
+          ))}
         </div>
 
-        {/* Spend bar */}
+        {/* Spend progress */}
         {totalSpent > 0 && (
-          <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div className="flex justify-between text-[10px] text-white/40 mb-2">
-              <span className="font-semibold uppercase tracking-wider">Spend Level</span>
-              <span style={{ color: C.green }}>Rs.{totalSpent.toLocaleString()}</span>
+          <div style={{ background: P.card, border: `1px solid ${P.border}`, borderRadius: R, padding: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: FONT, fontSize: '10px', marginBottom: '6px' }}>
+              <span style={{ color: P.dim, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.08em' }}>Spend vs VIP</span>
+              <span style={{ color: P.emerald, fontWeight: 700 }}>Rs.{totalSpent.toLocaleString()} / 5,000</span>
             </div>
-            <div className="h-2 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <div style={{ height: '4px', borderRadius: '2px', background: 'rgba(255,255,255,0.06)' }}>
               <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min((totalSpent / 5000) * 100, 100)}%` }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
-                className="h-2 rounded-full" style={{ background: `linear-gradient(90deg, ${C.blue}, ${C.green})` }} />
+                transition={{ duration: 0.8 }}
+                style={{ height: '100%', borderRadius: '2px', background: `linear-gradient(90deg, ${P.blue}, ${P.emerald})` }} />
             </div>
-            <p className="text-[9px] text-white/30 mt-1.5">VIP threshold: Rs.5,000</p>
           </div>
         )}
 
-        {/* Contact */}
-        {customer.email && (
-          <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <p className="text-[9px] text-white/40 uppercase tracking-wider font-semibold mb-2">Contact</p>
-            <div className="flex items-center gap-2 text-[12px] text-white/60">
-              <span className="material-symbols-outlined text-[14px]" style={{ color: C.blue }}>email</span>
-              {customer.email}
-            </div>
+        {/* Info */}
+        <div style={{ background: P.card, border: `1px solid ${P.border}`, borderRadius: R, padding: '12px' }}>
+          <Row l="Phone"      v={customer.phone} mono />
+          {customer.email && <Row l="Email"   v={customer.email} />}
+          {customer.firstVisit && <Row l="First Visit" v={new Date(customer.firstVisit).toLocaleDateString()} />}
+          {customer.lastVisit  && <Row l="Last Seen"   v={new Date(customer.lastVisit).toLocaleDateString()} />}
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
+            <span style={{ fontFamily: FONT, fontSize: '11px', color: P.muted }}>WhatsApp</span>
+            <span style={{ fontFamily: FONT, fontSize: '11px', fontWeight: 600, color: customer.whatsappOptIn ? P.emerald : P.slate }}>
+              {customer.whatsappOptIn ? 'Opted In' : 'Opted Out'}
+            </span>
           </div>
-        )}
+        </div>
 
         {/* Tags */}
-        <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <p className="text-[9px] text-white/40 uppercase tracking-wider font-semibold mb-3">Tags</p>
-          <div className="flex flex-wrap gap-1.5 mb-3 min-h-[24px]">
+        <div style={{ background: P.card, border: `1px solid ${P.border}`, borderRadius: R, padding: '12px' }}>
+          <p style={{ fontFamily: FONT, fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: P.dim, margin: '0 0 8px' }}>Tags</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '10px', minHeight: '20px' }}>
             {(customer.tags || []).length === 0
-              ? <span className="text-[11px] text-white/30 italic">No tags yet</span>
+              ? <span style={{ fontFamily: FONT, fontSize: '11px', color: P.dim, fontStyle: 'italic' }}>No tags yet</span>
               : customer.tags.map(t => (
-                  <span key={t} className="text-[10px] px-2 py-0.5 rounded-full font-medium"
-                    style={{ color: C.cyan, background: C.cyan + '15', border: `1px solid ${C.cyan}30` }}>{t}</span>
+                  <span key={t} style={{ fontFamily: FONT, fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', color: P.cyan, background: P.cyan + '12', border: `1px solid ${P.cyan}25` }}>{t}</span>
                 ))
             }
           </div>
-          <div className="flex gap-2">
+          <div style={{ display: 'flex', gap: '6px' }}>
             <input value={tag} onChange={e => setTag(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddTag()}
               placeholder="Add tag..."
-              className="flex-1 px-3 py-1.5 rounded-lg text-[12px] text-white placeholder:text-white/20 focus:outline-none"
-              style={{ background: 'rgba(0,0,0,0.3)', border: `1px solid rgba(255,255,255,0.1)` }} />
-            <button onClick={handleAddTag} disabled={addTagMutation.isPending}
-              className="px-3 py-1.5 rounded-lg text-[12px] font-bold transition-colors"
-              style={{ background: C.blue + '22', color: C.blue, border: `1px solid ${C.blue}40` }}>
+              style={{ flex: 1, fontFamily: FONT, fontSize: '12px', padding: '7px 10px', borderRadius: R, background: 'rgba(255,255,255,0.04)', border: `1px solid ${P.border}`, color: P.text, outline: 'none' }}
+              onFocus={e => e.target.style.borderColor = P.blue + '70'}
+              onBlur={e => e.target.style.borderColor = P.border} />
+            <button onClick={handleAddTag} disabled={addTagMut.isPending}
+              style={{ fontFamily: FONT, fontWeight: 700, fontSize: '11px', padding: '7px 14px', borderRadius: R, background: P.blue + '18', border: `1px solid ${P.blue}30`, color: P.blue, cursor: 'pointer' }}>
               Add
             </button>
           </div>
         </div>
 
-        {/* Block toggle */}
-        <div className="rounded-xl p-4" style={{ background: customer.isBlocked ? 'rgba(244,63,94,0.06)' : 'rgba(255,255,255,0.03)', border: `1px solid ${customer.isBlocked ? C.pink + '30' : 'rgba(255,255,255,0.08)'}` }}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[12px] font-semibold text-white">{customer.isBlocked ? 'Customer Blocked' : 'Block Customer'}</p>
-              <p className="text-[10px] text-white/40 mt-0.5">{customer.isBlocked ? (customer.blockReason || 'No reason given') : 'Prevent further interactions'}</p>
-            </div>
-            <button onClick={() => blockMutation.mutate(customer._id)} disabled={blockMutation.isPending}
-              className="px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors"
-              style={customer.isBlocked
-                ? { color: C.teal, background: C.teal + '20', border: `1px solid ${C.teal}30` }
-                : { color: C.pink, background: C.pink + '15', border: `1px solid ${C.pink}30` }}>
-              {blockMutation.isPending ? '...' : customer.isBlocked ? 'Unblock' : 'Block'}
-            </button>
+        {/* Block */}
+        <div style={{ background: customer.isBlocked ? P.rose + '08' : P.card, border: `1px solid ${customer.isBlocked ? P.rose + '25' : P.border}`, borderRadius: R, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <p style={{ fontFamily: FONT, fontWeight: 600, fontSize: '12px', color: P.text, margin: '0 0 2px' }}>
+              {customer.isBlocked ? 'Customer Blocked' : 'Block Customer'}
+            </p>
+            <p style={{ fontFamily: FONT, fontSize: '10px', color: P.muted, margin: 0 }}>
+              {customer.isBlocked ? (customer.blockReason || 'No reason given') : 'Prevent further interactions'}
+            </p>
           </div>
-        </div>
-
-        {/* Dates */}
-        <div className="flex gap-4 text-[10px] text-white/30">
-          {customer.firstVisit && <span>First visit: <span className="text-white/50">{new Date(customer.firstVisit).toLocaleDateString()}</span></span>}
-          {customer.lastVisit && <span>Last seen: <span className="text-white/50">{new Date(customer.lastVisit).toLocaleDateString()}</span></span>}
+          <button onClick={() => blockMut.mutate(customer._id)} disabled={blockMut.isPending}
+            style={{ fontFamily: FONT, fontWeight: 700, fontSize: '11px', padding: '6px 14px', borderRadius: R, cursor: 'pointer', transition: 'all .12s',
+              color: customer.isBlocked ? P.emerald : P.rose,
+              background: (customer.isBlocked ? P.emerald : P.rose) + '15',
+              border: `1px solid ${(customer.isBlocked ? P.emerald : P.rose)}30` }}>
+            {blockMut.isPending ? '...' : customer.isBlocked ? 'Unblock' : 'Block'}
+          </button>
         </div>
       </div>
     </motion.div>
   )
 }
 
+// ── Main Page ─────────────────────────────────────────────
 export default function Users() {
   const activeShop = useAuthStore((s) => s.activeShop)
-  const [search, setSearch] = useState('')
+  const [search, setSearch]   = useState('')
   const [segment, setSegment] = useState('')
-  const [page, setPage] = useState(1)
+  const [page, setPage]       = useState(1)
   const [selected, setSelected] = useState(null)
-  const [backfillDone, setBackfillDone] = useState(false)
+  const [synced, setSynced]   = useState(false)
 
-  const { data, isLoading } = useCustomersByShop(activeShop?._id, {
-    page, limit: 15,
-    segment: segment || undefined,
-    search: search || undefined,
-  })
-  const { data: topData } = useTopCustomers(activeShop?._id, 3)
-  const { data: inactiveData } = useInactiveCustomers(activeShop?._id)
-  const backfillMutation = useBackfillCustomerStats()
+  const { data, isLoading }     = useCustomersByShop(activeShop?._id, { page, limit: 15, segment: segment || undefined, search: search || undefined })
+  const { data: topData }       = useTopCustomers(activeShop?._id, 3)
+  const { data: inactiveData }  = useInactiveCustomers(activeShop?._id)
+  const backfillMut             = useBackfillCustomerStats()
 
-  const customers = data?.data?.customers || []
-  const pagination = data?.data?.pagination || {}
-  const topCustomers = topData?.data || []
-  const inactiveCount = inactiveData?.count || 0
+  const customers     = data?.data?.customers   || []
+  const pagination    = data?.data?.pagination  || {}
+  const topCustomers  = topData?.data           || []
+  const inactiveCount = inactiveData?.count      || 0
+  const waOptIn       = customers.filter(c => c.whatsappOptIn).length
 
-  const whatsappOptIn = customers.filter(c => c.whatsappOptIn).length
-  const SEGMENTS = ['', 'vip', 'active', 'regular', 'new', 'inactive', 'blocked']
-
-  const handleBackfill = () => {
-    backfillMutation.mutate(activeShop._id, {
-      onSuccess: () => setBackfillDone(true),
-    })
-  }
+  if (!activeShop) return (
+    <div style={{ textAlign: 'center', padding: '80px 24px', fontFamily: FONT }}>
+      <span className="material-symbols-outlined" style={{ fontSize: '44px', color: 'rgba(255,255,255,0.08)', display: 'block', marginBottom: '12px' }}>group</span>
+      <p style={{ fontWeight: 700, fontSize: '16px', color: P.text, margin: '0 0 5px' }}>No Active Shop</p>
+      <p style={{ fontSize: '13px', color: P.muted, margin: 0 }}>Select a shop to view customers.</p>
+    </div>
+  )
 
   return (
-    <div className="relative">
+    <div style={{ fontFamily: FONT, position: 'relative' }}>
+
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h2 className="font-display text-[28px] font-black text-white tracking-tight">Customer Registry</h2>
-          <p className="text-[12px] mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            {pagination.total ? `${pagination.total} customers across your network` : 'Manage your customer base'}
+          <h2 style={{ fontFamily: FONT, fontWeight: 800, fontSize: '24px', color: P.text, margin: 0 }}>Customer Registry</h2>
+          <p style={{ fontFamily: FONT, fontSize: '12px', color: P.muted, margin: '4px 0 0' }}>
+            {pagination.total ?? 0} customers · {activeShop.name}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {backfillDone && (
-            <span className="text-[11px] px-3 py-1.5 rounded-lg font-medium" style={{ color: C.green, background: C.green + '15', border: `1px solid ${C.green}30` }}>
-              ✓ Stats synced
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {synced && (
+            <span style={{ fontFamily: FONT, fontSize: '11px', fontWeight: 500, padding: '5px 10px', borderRadius: R, color: P.emerald, background: 'transparent', border: `1px solid ${P.emerald}35`, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>check_circle</span>
+              Synced
             </span>
           )}
-          <button onClick={handleBackfill} disabled={backfillMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-bold transition-all disabled:opacity-50"
-            style={{ color: C.cyan, background: C.cyan + '12', border: `1px solid ${C.cyan}30` }}>
-            <span className={`material-symbols-outlined text-[15px] ${backfillMutation.isPending ? 'animate-spin' : ''}`}>
-              {backfillMutation.isPending ? 'autorenew' : 'sync'}
+          <button
+            onClick={() => backfillMut.mutate(activeShop._id, { onSuccess: () => setSynced(true) })}
+            disabled={backfillMut.isPending}
+            style={{ fontFamily: FONT, fontWeight: 500, fontSize: '12px', padding: '7px 14px', borderRadius: R, background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', border: '1px solid rgba(255,255,255,0.18)', cursor: backfillMut.isPending ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', transition: 'all .15s' }}
+            onMouseEnter={e => { if (!backfillMut.isPending) { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)'; e.currentTarget.style.color = '#fff' } }}
+            onMouseLeave={e => { if (!backfillMut.isPending) { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)' } }}>
+            <span className={`material-symbols-outlined ${backfillMut.isPending ? 'animate-spin' : ''}`} style={{ fontSize: '14px' }}>
+              {backfillMut.isPending ? 'autorenew' : 'sync'}
             </span>
-            {backfillMutation.isPending ? 'Syncing...' : 'Sync Stats'}
+            {backfillMut.isPending ? 'Syncing...' : 'Sync Stats'}
           </button>
         </div>
       </div>
 
-      {!activeShop ? (
-        <div className="rounded-2xl p-10 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <span className="material-symbols-outlined text-[48px] block mb-3" style={{ color: C.blue }}>store</span>
-          <p className="text-white font-bold text-[16px] mb-1">No Active Shop Selected</p>
-          <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.4)' }}>Select a shop from your profile to view its customer registry.</p>
+      {/* KPI row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: '10px', marginBottom: '20px' }}>
+        {[
+          { l: 'Total',        v: pagination.total || 0, c: P.blue,    icon: 'group'              },
+          { l: 'VIP',          v: customers.filter(c => c.segment === 'vip').length, c: P.amber, icon: 'workspace_premium' },
+          { l: 'Inactive',     v: inactiveCount,         c: P.rose,    icon: 'schedule'           },
+          { l: 'WhatsApp',     v: waOptIn,               c: '#25D366', icon: 'forum'              },
+        ].map((k, i) => (
+          <motion.div key={k.l} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * .06 }}
+            style={{ background: P.card, border: `1px solid ${k.c}18`, borderRadius: R2, padding: '14px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: -6, right: -6, width: 44, height: 44, borderRadius: '50%', background: k.c + '18', filter: 'blur(14px)' }} />
+            <div style={{ width: '30px', height: '30px', borderRadius: R, background: k.c + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px', color: k.c }}>{k.icon}</span>
+            </div>
+            <p style={{ fontFamily: FONT, fontWeight: 800, fontSize: '22px', color: k.c, margin: 0, lineHeight: 1 }}>{k.v}</p>
+            <p style={{ fontFamily: FONT, fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: P.dim, margin: '3px 0 0' }}>{k.l}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Top spenders */}
+      {topCustomers.length > 0 && (
+        <div style={{ background: P.card, border: `1px solid ${P.border}`, borderRadius: R2, padding: '14px', marginBottom: '16px' }}>
+          <p style={{ fontFamily: FONT, fontSize: '11px', fontWeight: 700, color: P.muted, margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '.1em' }}>Top Spenders</p>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {topCustomers.map((c, i) => {
+              const RANK_CLR = [P.amber, P.slate, P.cyan]
+              return (
+                <button key={c._id} onClick={() => setSelected(c)}
+                  style={{ fontFamily: FONT, display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: R, background: 'rgba(255,255,255,0.04)', border: `1px solid ${P.border}`, cursor: 'pointer', transition: 'border-color .12s' }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = RANK_CLR[i] + '50'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = P.border}>
+                  <span style={{ fontFamily: FONT, fontSize: '10px', fontWeight: 800, color: RANK_CLR[i] }}>#{i + 1}</span>
+                  <span style={{ fontFamily: FONT, fontSize: '12px', fontWeight: 600, color: P.text }}>{c.name || 'Guest'}</span>
+                  <span style={{ fontFamily: FONT, fontSize: '11px', fontWeight: 700, color: P.emerald }}>Rs.{(c.stats?.totalSpent || 0).toLocaleString()}</span>
+                </button>
+              )
+            })}
+          </div>
         </div>
-      ) : (
-        <>
-          {/* KPI Row */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {[
-              { label: 'Total Customers', value: pagination.total || 0, icon: 'group', color: C.blue },
-              { label: 'VIP Customers', value: customers.filter(c => c.segment === 'vip').length, icon: 'workspace_premium', color: C.amber },
-              { label: 'Inactive (7d)', value: inactiveCount, icon: 'schedule', color: C.pink },
-              { label: 'WhatsApp Opted-In', value: whatsappOptIn, icon: 'forum', color: C.teal },
-            ].map((k, i) => (
-              <motion.div key={k.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
-                whileHover={{ y: -3, scale: 1.02 }}
-                className="rounded-2xl p-5 relative overflow-hidden cursor-default"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <div className="absolute -right-4 -top-4 w-16 h-16 rounded-full blur-2xl" style={{ background: k.color + '30' }} />
-                <div className="relative z-10">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ background: k.color + '22' }}>
-                    <span className="material-symbols-outlined text-[18px]" style={{ color: k.color }}>{k.icon}</span>
-                  </div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>{k.label}</p>
-                  <p className="font-display font-black text-[26px] text-white leading-none">{k.value}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+      )}
 
-          {/* Top Customers Strip */}
-          {topCustomers.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-              className="rounded-2xl p-5 mb-5"
-              style={{ background: `linear-gradient(135deg, ${C.blue}0a, ${C.purple}0a)`, border: `1px solid ${C.blue}20` }}>
-              <div className="flex items-center gap-2 mb-4">
-                <span className="material-symbols-outlined text-[16px]" style={{ color: C.amber }}>workspace_premium</span>
-                <h3 className="font-bold text-white text-[13px]">Top Spenders</h3>
-              </div>
-              <div className="flex gap-3 flex-wrap">
-                {topCustomers.map((c, i) => (
-                  <button key={c._id} onClick={() => setSelected(c)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all hover:scale-105"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black text-white"
-                      style={{ background: [C.amber, C.teal, C.blue][i] + '44' }}>
-                      {(c.name || c.phone).slice(0, 2).toUpperCase()}
-                    </div>
-                    <div className="text-left">
-                      <p className="text-[11px] font-semibold text-white">{c.name || 'Guest'}</p>
-                      <p className="text-[10px]" style={{ color: C.green }}>Rs.{(c.stats?.totalSpent || 0).toLocaleString()}</p>
-                    </div>
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full" style={{ color: [C.amber, '#9ca3af', C.teal][i], background: [C.amber, '#9ca3af', C.teal][i] + '20' }}>
-                      #{i + 1}
-                    </span>
-                  </button>
+      {/* Search + filters */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+          <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '15px', color: P.dim, pointerEvents: 'none' }}>search</span>
+          <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
+            placeholder="Search by name, phone, or tag..."
+            style={{ width: '100%', fontFamily: FONT, fontSize: '12px', padding: '8px 12px 8px 34px', borderRadius: R, background: P.card, border: `1px solid ${P.border}`, color: P.text, outline: 'none', boxSizing: 'border-box' }}
+            onFocus={e => e.target.style.borderColor = P.blue + '60'}
+            onBlur={e => e.target.style.borderColor = P.border} />
+        </div>
+        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+          {SEGMENTS.map(s => {
+            const col = s ? (SEG_CFG[s]?.color || P.blue) : P.blue
+            const active = segment === s
+            return (
+              <button key={s} onClick={() => { setSegment(s); setPage(1) }}
+                style={{ fontFamily: FONT, fontWeight: 600, fontSize: '11px', padding: '7px 12px', borderRadius: R, cursor: 'pointer', transition: 'all .12s', textTransform: 'capitalize',
+                  background: active ? col + '18' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${active ? col + '40' : P.border}`,
+                  color: active ? col : P.muted }}>
+                {s || 'All'}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Table */}
+      <div style={{ background: P.card, border: `1px solid ${P.border}`, borderRadius: R2, overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${P.border}`, background: 'rgba(255,255,255,0.02)' }}>
+                {['Customer', 'Phone', 'Segment', 'Total Spent', 'Orders', 'Last Visit'].map((h, i) => (
+                  <th key={h} style={{ fontFamily: FONT, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.09em', color: P.dim, padding: '12px 16px', textAlign: i >= 3 ? 'right' : 'left' }}
+                    className={i === 1 ? 'hidden md:table-cell' : i === 2 ? 'hidden lg:table-cell' : i === 3 ? 'hidden lg:table-cell' : i === 5 ? 'hidden xl:table-cell' : ''}>
+                    {h}
+                  </th>
                 ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-3 mb-5">
-            <div className="relative flex-1">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px]" style={{ color: 'rgba(255,255,255,0.3)' }}>search</span>
-              <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
-                placeholder="Search by name, phone, or tag..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl text-[13px] text-white placeholder:text-white/20 focus:outline-none transition-all"
-                style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid rgba(255,255,255,0.1)` }}
-                onFocus={e => e.target.style.borderColor = C.blue + '80'}
-                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'} />
-            </div>
-            <div className="flex gap-1.5 flex-wrap">
-              {SEGMENTS.map(s => {
-                const cfg = s ? SEGMENT_CONFIG[s] : null
-                const active = segment === s
-                return (
-                  <button key={s} onClick={() => { setSegment(s); setPage(1) }}
-                    className="px-3 py-2 rounded-lg text-[11px] font-medium capitalize transition-all"
-                    style={active
-                      ? { color: cfg?.color || C.blue, background: (cfg?.color || C.blue) + '20', border: `1px solid ${(cfg?.color || C.blue)}40` }
-                      : { color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    {s || 'All'}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Table */}
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-            className="rounded-2xl overflow-hidden"
-            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                    {['Customer', 'Phone', 'Segment', 'Total Spent', 'Orders', 'Last Visit'].map((h, i) => (
-                      <th key={h} className={`px-5 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider ${i > 1 && i < 3 ? 'hidden lg:table-cell' : i >= 3 ? (i === 3 ? 'text-right hidden lg:table-cell' : i === 4 ? 'text-right' : 'text-right hidden xl:table-cell') : i === 1 ? 'hidden md:table-cell' : ''}`}
-                        style={{ color: 'rgba(255,255,255,0.3)' }}>{h}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                [...Array(5)].map((_, i) => (
+                  <tr key={i} style={{ borderBottom: `1px solid ${P.border}` }}>
+                    {[...Array(6)].map((_, j) => (
+                      <td key={j} style={{ padding: '12px 16px' }}>
+                        <div style={{ height: '12px', borderRadius: R, background: 'rgba(255,255,255,0.05)', animation: 'pulse 1.5s infinite' }} />
+                      </td>
                     ))}
                   </tr>
-                </thead>
-                <tbody>
-                  {isLoading ? (
-                    [...Array(6)].map((_, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                        {[...Array(6)].map((_, j) => (
-                          <td key={j} className="px-5 py-4"><div className="h-3 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.05)' }} /></td>
-                        ))}
-                      </tr>
-                    ))
-                  ) : customers.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-5 py-16 text-center">
-                        <span className="material-symbols-outlined text-[48px] block mb-3" style={{ color: 'rgba(255,255,255,0.1)' }}>group</span>
-                        <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.3)' }}>No customers found.</p>
-                      </td>
-                    </tr>
-                  ) : customers.map((c, i) => {
-                    const initials = (c.name || c.phone || '?').slice(0, 2).toUpperCase()
-                    const spent = c.stats?.totalSpent || 0
-                    const orders = c.stats?.totalOrders || 0
-                    return (
-                      <motion.tr key={c._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
-                        onClick={() => setSelected(c)}
-                        className="cursor-pointer transition-colors group"
-                        style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[12px] font-black text-white flex-shrink-0"
-                              style={{ background: c.isBlocked ? C.pink + '30' : `linear-gradient(135deg, ${C.blue}50, ${C.purple}50)`, border: `1px solid ${c.isBlocked ? C.pink : C.blue}30` }}>
-                              {initials}
-                            </div>
-                            <div>
-                              <p className="text-[13px] font-semibold text-white group-hover:text-[#00d4ff] transition-colors">{c.name || 'Unnamed'}</p>
-                              {c.email && <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{c.email}</p>}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-5 py-3.5 hidden md:table-cell">
-                          <span className="text-[12px] font-mono" style={{ color: 'rgba(255,255,255,0.5)' }}>{c.phone}</span>
-                        </td>
-                        <td className="px-5 py-3.5 hidden lg:table-cell">
-                          <SegmentBadge segment={c.segment} />
-                        </td>
-                        <td className="px-5 py-3.5 text-right hidden lg:table-cell">
-                          <span className="text-[13px] font-bold" style={{ color: spent > 0 ? C.green : 'rgba(255,255,255,0.3)' }}>
-                            Rs.{spent.toLocaleString()}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3.5 text-right">
-                          <span className="text-[13px] font-bold" style={{ color: orders > 0 ? C.blue : 'rgba(255,255,255,0.3)' }}>{orders}</span>
-                        </td>
-                        <td className="px-5 py-3.5 text-right hidden xl:table-cell">
-                          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                            {c.lastVisit ? new Date(c.lastVisit).toLocaleDateString() : '—'}
-                          </span>
-                        </td>
-                      </motion.tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                ))
+              ) : customers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '56px 24px' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '40px', color: 'rgba(255,255,255,0.08)', display: 'block', marginBottom: '10px' }}>group</span>
+                    <p style={{ fontFamily: FONT, fontSize: '13px', color: P.dim, margin: 0 }}>No customers found.</p>
+                  </td>
+                </tr>
+              ) : customers.map((c, i) => {
+                const initials = (c.name || c.phone || '?').slice(0, 2).toUpperCase()
+                const spent  = c.stats?.totalSpent  || 0
+                const orders = c.stats?.totalOrders || 0
+                return (
+                  <motion.tr key={c._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * .025 }}
+                    onClick={() => setSelected(c)}
+                    style={{ borderBottom: `1px solid ${P.border}`, cursor: 'pointer', transition: 'background .1s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: R, background: c.isBlocked ? P.rose + '20' : P.blue + '20', border: `1px solid ${c.isBlocked ? P.rose : P.blue}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT, fontWeight: 800, fontSize: '11px', color: c.isBlocked ? P.rose : P.blue, flexShrink: 0 }}>
+                          {initials}
+                        </div>
+                        <div>
+                          <p style={{ fontFamily: FONT, fontWeight: 600, fontSize: '13px', color: P.text, margin: 0 }}>{c.name || 'Unnamed'}</p>
+                          {c.email && <p style={{ fontFamily: FONT, fontSize: '10px', color: P.dim, margin: '1px 0 0' }}>{c.email}</p>}
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '12px 16px' }} className="hidden md:table-cell">
+                      <span style={{ fontFamily: "'Courier New',monospace", fontSize: '11px', color: P.muted }}>{c.phone}</span>
+                    </td>
+                    <td style={{ padding: '12px 16px' }} className="hidden lg:table-cell">
+                      <SegBadge segment={c.segment} />
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right' }} className="hidden lg:table-cell">
+                      <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: '12px', color: spent > 0 ? P.emerald : P.dim }}>
+                        Rs.{spent.toLocaleString()}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                      <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: '12px', color: orders > 0 ? P.blue : P.dim }}>{orders}</span>
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right' }} className="hidden xl:table-cell">
+                      <span style={{ fontFamily: FONT, fontSize: '11px', color: P.dim }}>
+                        {c.lastVisit ? new Date(c.lastVisit).toLocaleDateString() : '—'}
+                      </span>
+                    </td>
+                  </motion.tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
 
-            {/* Footer */}
-            {customers.length > 0 && (
-              <div className="flex items-center justify-between px-5 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                  {pagination.total} customers · {whatsappOptIn} on WhatsApp
-                </span>
-                {pagination.pages > 1 && (
-                  <div className="flex gap-1.5">
-                    <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                      className="px-3 py-1 rounded-lg text-[11px] transition-colors disabled:opacity-30"
-                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}>
-                      ← Prev
-                    </button>
-                    <span className="px-3 py-1 text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{page}/{pagination.pages}</span>
-                    <button onClick={() => setPage(p => Math.min(pagination.pages, p + 1))} disabled={page === pagination.pages}
-                      className="px-3 py-1 rounded-lg text-[11px] transition-colors disabled:opacity-30"
-                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}>
-                      Next →
-                    </button>
-                  </div>
-                )}
+        {/* Footer */}
+        {customers.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderTop: `1px solid ${P.border}` }}>
+            <span style={{ fontFamily: FONT, fontSize: '11px', color: P.dim }}>
+              {pagination.total} customers · {waOptIn} on WhatsApp
+            </span>
+            {pagination.pages > 1 && (
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                  style={{ fontFamily: FONT, fontSize: '11px', padding: '5px 12px', borderRadius: R, background: 'rgba(255,255,255,0.04)', border: `1px solid ${P.border}`, color: P.muted, cursor: 'pointer', opacity: page === 1 ? .3 : 1 }}>
+                  ← Prev
+                </button>
+                <span style={{ fontFamily: FONT, fontSize: '11px', color: P.dim, padding: '0 8px' }}>{page}/{pagination.pages}</span>
+                <button onClick={() => setPage(p => Math.min(pagination.pages, p + 1))} disabled={page === pagination.pages}
+                  style={{ fontFamily: FONT, fontSize: '11px', padding: '5px 12px', borderRadius: R, background: 'rgba(255,255,255,0.04)', border: `1px solid ${P.border}`, color: P.muted, cursor: 'pointer', opacity: page === pagination.pages ? .3 : 1 }}>
+                  Next →
+                </button>
               </div>
             )}
-          </motion.div>
-        </>
-      )}
+          </div>
+        )}
+      </div>
 
       {/* Drawer */}
       <AnimatePresence>
         {selected && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setSelected(null)} className="fixed inset-0 z-40" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} />
+              onClick={() => setSelected(null)}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 40 }} />
             <CustomerDrawer customer={selected} onClose={() => setSelected(null)} />
           </>
         )}

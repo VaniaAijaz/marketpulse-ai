@@ -322,7 +322,9 @@ export default function DashboardHome() {
           )}
         </div>
         <button onClick={() => navigate('/dashboard/ai-agent')}
-          style={{ fontFamily: FONT, fontWeight: 700, fontSize: '12px', padding: '9px 18px', borderRadius: R, background: P.blue, color: '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: `0 0 18px ${P.blue}35` }}>
+          style={{ fontFamily: FONT, fontWeight: 500, fontSize: '12px', padding: '7px 14px', borderRadius: R, background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.75)', border: '1px solid rgba(255,255,255,0.18)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', transition: 'all .15s' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)'; e.currentTarget.style.color = '#fff' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)' }}>
           <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>psychology</span>
           AI Assistant
         </button>
