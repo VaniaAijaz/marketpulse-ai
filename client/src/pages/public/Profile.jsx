@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
 
-const Singin = () => {
+const Profile = () => {
   useEffect(() => {
     document.title = "eflux - Grocery & Organic Supermarket Responsive Template";
   }, []);
@@ -18,6 +17,147 @@ const Singin = () => {
         </div>
     </a>
 
+
+    {/* menu modal */}
+    <div className="modal fade address-edit-box" id="address-edit" tabIndex="-1" aria-labelledby="address-edit" aria-hidden="true">
+        <div className="modal-dialog  modal-dialog-centered">
+            <div className="modal-content">
+                <div className="modal-body">
+                    <h4>Edit Your Address</h4>
+                    <form action="#" className="address-form">
+                        {/* <div className="input-item">
+                            <label>Address Type</label>
+                            <input type="text" name="name" placeholder="Home"/>
+                        </div> */}
+                        <div className="input-item">
+                            <label>Address</label>
+                            <input type="text" name="name" placeholder="2548 Broaddus Maple Court Avenue"/>
+                        </div>
+                        <div className="input-item">
+                            <label>City</label>
+                            <div className="flux-custom-select">
+                                <select>
+                                  <option value="0">Alberta</option>
+                                  <option value="1">British Columbia</option>
+                                  <option value="2">Manitoba</option>
+                                  <option value="3">New Brunswick</option>
+                                  <option value="4">Nova Scotia</option>
+                                  <option value="5">Ontario</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="input-item">
+                            <label>State</label>
+                            {/* <input type="text" name="name" placeholder="Sun fransico"/> */}
+                            <div className="flux-custom-select">
+                                <select>
+                                  <option value="0">Nunavut</option>
+                                  <option value="1">Northwest Territories</option>
+                                  <option value="2"> Ontario</option>
+                                  <option value="3">British Columbia</option>
+                                  <option value="4">Nova Scotia</option>
+                                  <option value="5">Prince Edward Island</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="input-item">
+                            <label>zip</label>
+                            <input type="text" name="name" placeholder="9847"/>
+                        </div>
+                        <div className="input-item">
+                            <label>Country</label>
+                            {/* <input type="text" name="name" placeholder="USA"/> */}
+                            <div className="flux-custom-select">
+                                <select>
+                                  <option value="0">Canada</option>
+                                  <option value="1">USA</option>
+                                  <option value="2"> UK</option>
+                                  <option value="3">Spain</option>
+                                  <option value="4">Italy</option>
+                                  <option value="5">Portgal</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <button className="submit">Save</button>
+                            <button data-dismiss="modal" className="cancel">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {/* menu modal */}
+    <div className="modal fade address-edit-box" id="address-add" tabIndex="-1" aria-labelledby="address-add" aria-hidden="true">
+        <div className="modal-dialog  modal-dialog-centered">
+            <div className="modal-content">
+                <div className="modal-body">
+                    <h4>Add Your Address</h4>
+                    <form action="#" className="address-form">
+                        <div className="input-item">
+                            <label>Address Type</label>
+                            <input type="text" name="name" placeholder="Home"/>
+                        </div>
+                        <div className="input-item">
+                            <label>Address</label>
+                            <input type="text" name="name" placeholder="2548 Broaddus Maple Court Avenue"/>
+                        </div>
+                        <div className="input-item">
+                            <label>City</label>
+                            <div className="flux-custom-select">
+                                <select>
+                                  <option value="0">Alberta</option>
+                                  <option value="1">British Columbia</option>
+                                  <option value="2">Manitoba</option>
+                                  <option value="3">New Brunswick</option>
+                                  <option value="4">Nova Scotia</option>
+                                  <option value="5">Ontario</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="input-item">
+                            <label>State</label>
+                            {/* <input type="text" name="name" placeholder="Sun fransico"/> */}
+                            <div className="flux-custom-select">
+                                <select>
+                                  <option value="0">Nunavut</option>
+                                  <option value="1">Northwest Territories</option>
+                                  <option value="2"> Ontario</option>
+                                  <option value="3">British Columbia</option>
+                                  <option value="4">Nova Scotia</option>
+                                  <option value="5">Prince Edward Island</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="input-item">
+                            <label>zip</label>
+                            <input type="text" name="name" placeholder="9847"/>
+                        </div>
+                        <div className="input-item">
+                            <label>Country</label>
+                            {/* <input type="text" name="name" placeholder="USA"/> */}
+                            <div className="flux-custom-select">
+                                <select>
+                                  <option value="0">Canada</option>
+                                  <option value="1">USA</option>
+                                  <option value="2"> UK</option>
+                                  <option value="3">Spain</option>
+                                  <option value="4">Italy</option>
+                                  <option value="5">Portgal</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <button className="submit">Save</button>
+                            <button data-dismiss="modal" className="cancel">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {/* admin Modal */}
     <div className="modal fade" id="useradmin1" tabIndex="-1" aria-labelledby="useradmin1" aria-hidden="true">
         <div className="modal-dialog modal-dialog-centered">
@@ -25,7 +165,9 @@ const Singin = () => {
                 <div className="modal-body">
                     <div className="header-top-action-dropdown">
                         <ul className="submenu">
-                            <li><a href="profile.html">Profile</a></li>
+                            <li><a className="active" href="profile.html">Profile</a></li>
+                            <li><a href="#">Setting</a></li>
+                            <li><a href="#">Billing</a></li>
                             <li><a href="#">Sign Out</a></li>
                         </ul>
                     </div>
@@ -82,24 +224,116 @@ const Singin = () => {
     </div>
 
 
-   {/* menu modal */}
-   <div className="modal fade" id="menu-id" tabIndex="-1" aria-labelledby="menu-id" aria-hidden="true">
-        <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content">
-            <div className="modal-body">
-              <ul className="menu d-xl-flex flex-wrap pl-0 list-unstyled">
-                <li><Link to="/">Home</Link></li>
-                <li><Link to="/about">About</Link></li>
-                <li><Link to="/contact">Contact Us</Link></li>
-                <li><Link to="/products">Products</Link></li>
-                <li><Link to="/profile">Profile</Link></li>
-                <li><Link to="/signup">Sign Up</Link></li>
-                <li><Link to="/signin">Sign In</Link></li>
-              </ul>
+    {/* menu modal */}
+     <div className="modal fade" id="menu-id" tabIndex="-1" aria-labelledby="menu-id" aria-hidden="true">
+        <div className="modal-dialog  modal-dialog-centered">
+            <div className="modal-content">
+                <div className="modal-body">
+                    <ul className="menu d-xl-flex flex-wrap pl-0 list-unstyled">
+                        <li className="item-has-children"><a data-toggle="collapse" href="#mainmenuid1" role="button" aria-expanded="false" aria-controls="catagory-widget1"><span>Home</span> <i className="fas fa-angle-down"></i></a>
+                            <ul className="submenu collapse" id="mainmenuid1">
+                                <li><a href="home-default.html">Home Default</a></li>
+                                <li><a href="index-icon.html">Home Default2</a></li>
+                                <li><a href="index.html">Home Sticky Sidebar</a></li>
+                                <li><a href="home-search.html">Home Search</a></li>
+                                <li><a href="home-slider.html">Home Slider</a></li>
+                                 <li><a href="home-slider2.html">Home Slider2</a></li>
+                                <li><a href="home7.html">Home Seven</a></li>
+                            </ul>
+                        </li>
+                        <li><a href="#">New Products</a></li>
+                        <li><a data-toggle="collapse" href="#megamenu-main" role="button" aria-expanded="false" aria-controls="catagory-widget1"><span>Featured Products</span> <i className="fas fa-angle-down"></i></a>
+                            <ul className=" collapse" id="megamenu-main">
+                                <li><a data-toggle="collapse" href="#megamenu-main01" role="button" aria-expanded="false" aria-controls="megamenu-main01"><span>Vegetables</span> <i className="fas fa-angle-down"></i></a>
+                                    <ul className="submenu collapse" id="megamenu-main01">
+                                        <li><a href="product-list.html">Artichoke.</a></li>
+                                        <li><a href="product-list.html">Aubergune</a></li>
+                                        <li><a href="product-list.html">Asparagus</a></li>
+                                        <li><a href="product-list.html">Broccoflower</a></li>
+                                    </ul>
+                                </li>
+                                <li><a data-toggle="collapse" href="#megamenu-main02" role="button" aria-expanded="false" aria-controls="megamenu-main02"><span>Fruits</span> <i className="fas fa-angle-down"></i></a>
+                                    <ul className="submenu collapse" id="megamenu-main02">
+                                        <li><a href="product-list.html">Artichoke.</a></li>
+                                        <li><a href="product-list.html">Aubergune</a></li>
+                                        <li><a href="product-list.html">Asparagus</a></li>
+                                        <li><a href="product-list.html">Broccoflower</a></li>
+                                    </ul>
+                                </li>
+                                <li><a data-toggle="collapse" href="#megamenu-main03" role="button" aria-expanded="false" aria-controls="megamenu-main03"><span>Salads</span> <i className="fas fa-angle-down"></i></a>
+                                    <ul className="submenu collapse" id="megamenu-main03">
+                                        <li><a href="product-list.html">Artichoke.</a></li>
+                                        <li><a href="product-list.html">Aubergune</a></li>
+                                        <li><a href="product-list.html">Asparagus</a></li>
+                                        <li><a href="product-list.html">Broccoflower</a></li>
+                                    </ul>
+                                </li>
+                                <li><a data-toggle="collapse" href="#megamenu-main04" role="button" aria-expanded="false" aria-controls="megamenu-main04"><span>Health Care</span> <i className="fas fa-angle-down"></i></a>
+                                    <ul className="submenu collapse" id="megamenu-main04">
+                                        <li><a href="product-list.html">Artichoke.</a></li>
+                                        <li><a href="product-list.html">Aubergune</a></li>
+                                        <li><a href="product-list.html">Asparagus</a></li>
+                                        <li><a href="product-list.html">Broccoflower</a></li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </li>
+                        <li className="item-has-children"><a data-toggle="collapse" href="#mainmenuid2" role="button" aria-expanded="false" aria-controls="mainmenuid2"><span>Pages</span> <i className="fas fa-angle-down"></i></a>
+                            <ul className="submenu collapse" id="mainmenuid2">
+                                <li><a href="about.html">About</a></li>
+                                <li><a href="contact.html">Contact</a></li>
+                                <li className="item-has-children"><a data-toggle="collapse" href="#mobile-product1" role="button" aria-expanded="false" aria-controls="mobile-product1"><span>Products</span> <i className="fas fa-angle-down"></i></a>
+                                    <ul className="submenu collapse" id="mobile-product1">
+                                        <li><a href="product-list.html">Product List</a></li>
+                                        <li><a href="product-leftsidebar.html">Product leftsidebar</a></li>
+                                        <li><a href="product-fullwidth.html">Product Fullwidth</a></li>
+                                        <li><a href="brand-product.html">Brand Page</a></li>
+                                        <li><a href="product-detail.html">Product Details</a></li>
+                                    </ul>
+                                </li>
+                                <li className="item-has-children"><a data-toggle="collapse" href="#mobile-dashboard1" role="button" aria-expanded="false" aria-controls="mobile-dashboard1"><span>Dashboard1</span> <i className="fas fa-angle-down"></i></a>
+                                    <ul className="submenu collapse" id="mobile-dashboard1">
+                                        <li><a href="user-dashbord.html">User Dashboard</a></li>
+                                        <li><a href="profile.html">Profile</a></li>
+                                        <li><a href="track-order.html">Track Order</a></li>
+                                        <li><a href="wishlist.html">Wish List</a></li>
+                                    </ul>
+                                </li>
+                                <li className="item-has-children"><a data-toggle="collapse" href="#mobile-dashboard2" role="button" aria-expanded="false" aria-controls="mobile-dashboard2"><span>Dashboard2</span> <i className="fas fa-angle-down"></i></a>
+                                    <ul className="submenu collapse" id="mobile-dashboard2">
+                                        <li><a href="dashboard.html">My Orders</a></li>
+                                        <li><a href="dashboard-account.html">Accounts</a></li>
+                                        <li><a href="dashboard-address-book.html">Address Book</a></li>
+                                        <li><a href="dashboard-order-cancel.html">Order Cancel</a></li>
+                                        <li><a href="dashboard-order-process.html">Order Process</a></li>
+                                        <li><a href="dashboard-password-change.html">Password Change</a></li>
+                                        <li><a href="dashboard-wishlist.html">whistlist</a></li>
+                                    </ul>
+                                </li>
+                                <li><a href="faq.html">FAQ</a></li>
+                                <li><a href="checkout.html">Checkout</a></li>
+                                <li><a href="checkout.html">Checkout</a></li>
+                                <li><a href="singin.html">SignIn</a></li>
+                                <li><a href="signup.html">SignUp</a></li>
+                                <li><a href="product-order-success.html">Order Success</a></li>
+                                <li><a href="comming-soon.html">Comming Soon</a></li>
+                                <li><a href="404-page.html">404 page</a></li>
+                            </ul>
+                        </li>
+                        <li className="item-has-children"><a data-toggle="collapse" href="#mainmenuid3" role="button" aria-expanded="false" aria-controls="mainmenuid3"><span>Blog</span> <i className="fas fa-angle-down"></i></a>
+                            <ul className="submenu collapse" id="mainmenuid3">
+                                <li><a href="blog.html">Blog full width</a></li>
+                                <li><a href="blog-rightsidebar.html">Blog Rightsidebar</a></li>
+                                <li><a href="single.html">Blog Single</a></li>
+                            </ul>
+                        </li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
+    </div>
+
 
 
     {/* sidebar-cart */}
@@ -318,7 +552,7 @@ const Singin = () => {
                         <li className="my-account item-has-children">
                             <a href="#"><i className="fas fa-user mr-1"></i> My Account</a>
                             <ul className="submenu">
-                                <li><a href="profile.html">Profile</a></li>
+                                <li><a className="active" href="profile.html">Profile</a></li>
                                 <li><a href="#">Sign Out</a></li>
                             </ul>
                         </li>
@@ -510,7 +744,6 @@ const Singin = () => {
     {/* header section end */}
 
 
-
     <div className="page-layout">
         <div className="catagory-sidebar-area">
             <div className="catagory-sidebar-area-inner">
@@ -611,15 +844,16 @@ const Singin = () => {
             </div>
         </div>
         <div className="main-content-area">
+            
             {/* page-header-section start */}
             <div className="page-header-section">
                 <div className="container">
                     <div className="row">
-                        <div className="col-12 d-flex justify-content-between justify-content-md-end">
+                        <div className="col-12 d-flex justify-content-between justify-content-md-start">
                             <ul className="breadcrumb">
                                 <li><a href="index.html">Home</a></li>
                                 <li><span>/</span></li>
-                                <li>Sing In</li>
+                                <li>Fruits & Vegetables</li>
                             </ul>
                         </div>
                     </div>
@@ -629,42 +863,145 @@ const Singin = () => {
 
 
 
-            <section className="login-section section-ptb">
-                <div className="container">
-                    <div className="row align-items-center">
-                        <div className="col-lg-6 mb--30 mb-lg-0">
-                            <div className="eflux-login-form-area">
-                                <form action="#" className="eflux-login-form">
-                                    
-                                    <div className="input-item">
-                                        <label>Email</label>
-                                        <input type="email" name="email" placeholder="Email Address"/>
-                                    </div>
-
-                                    <div className="input-item">
-                                        <label>Password</label>
-                                        <input type="password" name="website" placeholder="Password"/>
-                                    </div>
-
-                                    <div>
-                                        <button type="submit" className="submit">Sign in</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                        <div className="col-lg-5 pl-lg-5">
-                            <div className="new-customer-container">
-                                <h6>New Customer</h6>
-                                <div className="new-customer-box">
-                                    <h6>Create a New Account</h6>
-                                    <p>Sign up for a free account at our store. Registration is quick and easy. It allows you to be able to order from our shop. To start shopping click register.</p>
-                                    <a href="signup.html" className="signup-btn">Sign Up</a>
+            {/* admin-page start */}
+            <section className="admin-page-section d-flex align-items-center">
+                <div className="aps-wrapper w-100">
+                    <div className="container">
+                        <div className="row justify-content-center justify-content-md-start">
+                            <div className="admin-content-area">
+                                <div className="admin-thumb">
+                                    <img src="/assets/images/admin/thumb.jpg" alt=""/>
+                                    <a href="#" className="image-change-option"><i className="fas fa-camera"></i></a>
+                                </div>
+                                <div className="admin-content">
+                                    <h4 className="name">Jhone Doe</h4>
+                                    <p className="desc">Lorem Ipsum is simply dummy text.</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
+            {/* admin-page end */}
+
+
+
+            {/* dashboard-section start */}
+            <section id="dashboard-nav" className="dashboard-section">
+                <div className="container">
+                    <ul className="dashbord-nav d-lg-flex flex-wrap align-items-center justify-content-between">
+                        <li><a href="user-dashbord.html#dashboard-nav"><i className="far fa-list-alt"></i>Your Orders</a></li>
+                        <li><a href="track-order.html#dashboard-nav"><i className="fas fa-shipping-fast"></i>Track Orders</a></li>
+                        <li><a className="active" href="profile.html#dashboard-nav"><i className="far fa-user"></i>Your Profile</a></li>
+                        <li><a href="wishlist.html#dashboard-nav"><i className="far fa-heart"></i>Wish List</a></li>
+                    </ul>
+                </div>
+
+                <div className="container">
+                    <div className="dashboard-body">
+                        <div className="profile">
+                            <h5 className="title">Your Profile <span title="Edit Profile" id="edit" className="edit" data-toggle="modal" data-target="#edit-form1"><i className="fas fa-edit"></i></span></h5>
+
+                            <ul className="list-profile-info list-unstyled">
+                                <li>
+                                    <span className="title">Your Name</span>
+                                    <span className="desc">Jhone Doe</span>
+                                </li>
+                                <li>
+                                    <span className="title">Email</span>
+                                    <span className="desc">jhondoe@gmail.com</span>
+                                </li>
+                                <li>
+                                    <span className="title">Mobile</span>
+                                    <span className="desc">000 111 122 333</span>
+                                </li>
+                                <li>
+                                    <span className="title">Website</span>
+                                    <span className="desc">jhondow.com</span>
+                                </li>
+                                <li>
+                                    <span className="title">City</span>
+                                    <span className="desc">San Bruno</span>
+                                </li>
+                                <li>
+                                    <span className="title">State</span>
+                                    <span className="desc">California</span>
+                                </li>
+                                <li>
+                                    <span className="title">Zip</span>
+                                    <span className="desc">94066</span>
+                                </li>
+                                <li>
+                                    <span className="title">Country</span>
+                                    <span className="desc">USA</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        {/* address */}
+                        <div className="profile-address-book">
+                            <h3 className="title">Address Book</h3>
+                            <ul className="address-list">
+                                <li className="active">
+                                    <span className="icon"><i className="fas fa-check-circle"></i></span>
+                                    <div className="address-text">
+                                        <h6>Office</h6>
+                                        <p className="address">2548 Broaddus Maple Court Avenue, Madisonville KY 4783, United States of America</p>
+                                        <p className="country">America</p>
+                                    </div> 
+                                    <div className="edit-delete-btn">
+                                        <button className="edit" type="button" data-toggle="modal" data-target="#address-edit"><i className="fas fa-edit"></i></button>
+                                        <button className="delete"><i className="fas fa-trash-alt"></i></button>
+                                    </div>   
+                                </li>
+
+                                <li>
+                                    <span className="icon"><i className="fas fa-check-circle"></i></span>
+                                    <div className="address-text">
+                                        <h6>Home</h6>
+                                        <p className="address">2548 Broaddus Maple Court Avenue, Madisonville KY 4783, United States of America</p>
+                                        <p className="country">America</p>
+                                    </div> 
+                                    <div className="edit-delete-btn">
+                                        <button className="edit" type="button" data-toggle="modal" data-target="#address-edit"><i className="fas fa-edit"></i></button>
+                                        <button className="delete"><i className="fas fa-trash-alt"></i></button>
+                                    </div>   
+                                </li>
+
+                                <li>
+                                    <span className="icon"><i className="fas fa-check-circle"></i></span>
+                                    <div className="address-text">
+                                        <h6>Office2</h6>
+                                        <p className="address">2548 Broaddus Maple Court Avenue, Madisonville KY 4783, United States of America</p>
+                                        <p className="country">America</p>
+                                    </div> 
+                                    <div className="edit-delete-btn">
+                                        <button className="edit" type="button" data-toggle="modal" data-target="#address-edit"><i className="fas fa-edit"></i></button>
+                                        <button className="delete"><i className="fas fa-trash-alt"></i></button>
+                                    </div>   
+                                </li>
+
+                                <li>
+                                    <span className="icon"><i className="fas fa-check-circle"></i></span>
+                                    <div className="address-text">
+                                        <h6>Home2</h6>
+                                        <p className="address">2548 Broaddus Maple Court Avenue, Madisonville KY 4783, United States of America</p>
+                                        <p className="country">America</p>
+                                    </div> 
+                                    <div className="edit-delete-btn">
+                                        <button className="edit" type="button" data-toggle="modal" data-target="#address-edit"><i className="fas fa-edit"></i></button>
+                                        <button className="delete"><i className="fas fa-trash-alt"></i></button>
+                                    </div>   
+                                </li>
+                                <li className="addnew">
+                                    <button type="button" data-toggle="modal" data-target="#address-add" className="add-new-btn">Add New Address</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            {/* dashboard-section end */}
 
 
 
@@ -776,133 +1113,212 @@ const Singin = () => {
                 </div>
             </footer>
             {/* footer section */}
+
+
         </div>
     </div>
 
 
-    {/* product-details-popup start */}
-    <section id="product-details-popup" className="product-details-popup">
-        <div className="modal-overlay" onClick="closeModal()"></div>
-        <div className="container">
-            <div className="product-zoom-info-container">
-                <div id="closed-modal" className="closed-modal" onClick="closeModal()">X</div>
-                <div className="row align-items-center">
-                    <div className="col-lg-6">
-                        <div className="product-zoom-area">
-                            <span className="batch">30%</span>
-                            <div className="cart-btn-toggle d-lg-none">
-                                <span className="cart-btn"><i className="fas fa-shopping-cart"></i> Cart</span>
 
-                                <div className="price-btn">
-                                    <div className="price-increase-decrese-group d-flex">
-                                        <span className="decrease-btn">
-                                            <button type="button" className="btn quantity-left-minus" data-type="minus" data-field="">-
-                                            </button> 
-                                        </span>
-                                        <input type="text" name="quantity" className="form-controls input-number" value="1"/>
-                                        <span className="increase">
-                                            <button type="button" className="btn quantity-right-plus" data-type="plus" data-field="">+
-                                            </button>
-                                        </span>
-                                    </div>
+
+{/* product-details-popup start */}
+<section id="product-details-popup" className="product-details-popup">
+    <div className="modal-overlay" onClick="closeModal()"></div>
+    <div className="container">
+        <div className="product-zoom-info-container">
+            <div id="closed-modal" className="closed-modal" onClick="closeModal()">X</div>
+            <div className="row align-items-center">
+                <div className="col-lg-6">
+                    <div className="product-zoom-area">
+                        <span className="batch">30%</span>
+                        <div className="cart-btn-toggle d-lg-none">
+                            <span className="cart-btn"><i className="fas fa-shopping-cart"></i> Cart</span>
+
+                            <div className="price-btn">
+                                <div className="price-increase-decrese-group d-flex">
+                                    <span className="decrease-btn">
+                                        <button type="button" className="btn quantity-left-minus" data-type="minus" data-field="">-
+                                        </button> 
+                                    </span>
+                                    <input type="text" name="quantity" className="form-controls input-number" value="1"/>
+                                    <span className="increase">
+                                        <button type="button" className="btn quantity-right-plus" data-type="plus" data-field="">+
+                                        </button>
+                                    </span>
                                 </div>
                             </div>
-                            <div className="product-slick">
-                                <div><img src="/assets/images/product-detail/01.jpg" alt="" className="img-fluid blur-up lazyload image_zoom_cls-0"/></div>
-                                <div><img src="/assets/images/product-detail/02.jpg" alt="" className="img-fluid blur-up lazyload image_zoom_cls-1"/></div>
-                                <div><img src="/assets/images/product-detail/03.jpg" alt="" className="img-fluid blur-up lazyload image_zoom_cls-2"/></div>
-                                <div><img src="/assets/images/product-detail/01.jpg" alt="" className="img-fluid blur-up lazyload image_zoom_cls-3"/></div>
-                                {/* <div><img src="/assets/images/product-detail/02.jpg" alt=""
-                                        className="img-fluid blur-up lazyload image_zoom_cls-4"/></div> */}
-                            </div>
-                            <div className="row">
-                                <div className="col-12">
-                                    <div className="slider-nav">
-                                        <div><img src="/assets/images/product-detail/01.jpg" alt="" className="img-fluid blur-up lazyload"/></div>
-                                        <div><img src="/assets/images/product-detail/02.jpg" alt="" className="img-fluid blur-up lazyload"/></div>
-                                        <div><img src="/assets/images/product-detail/03.jpg" alt="" className="img-fluid blur-up lazyload"/></div>
-                                        <div><img src="/assets/images/product-detail/01.jpg" alt="" className="img-fluid blur-up lazyload"/></div>
-                                        {/* <div><img src="/assets/images/product-detail/02.jpg" alt=""
-                                                className="img-fluid blur-up lazyload"/></div> */}
-                                    </div>
+                        </div>
+                        <div className="product-slick">
+                            <div><img src="/assets/images/product-detail/01.jpg" alt="" className="img-fluid blur-up lazyload image_zoom_cls-0"/></div>
+                            <div><img src="/assets/images/product-detail/02.jpg" alt="" className="img-fluid blur-up lazyload image_zoom_cls-1"/></div>
+                            <div><img src="/assets/images/product-detail/03.jpg" alt="" className="img-fluid blur-up lazyload image_zoom_cls-2"/></div>
+                            <div><img src="/assets/images/product-detail/01.jpg" alt="" className="img-fluid blur-up lazyload image_zoom_cls-3"/></div>
+                            {/* <div><img src="/assets/images/product-detail/02.jpg" alt=""
+                                    className="img-fluid blur-up lazyload image_zoom_cls-4"/></div> */}
+                        </div>
+                        <div className="row">
+                            <div className="col-12">
+                                <div className="slider-nav">
+                                    <div><img src="/assets/images/product-detail/01.jpg" alt="" className="img-fluid blur-up lazyload"/></div>
+                                    <div><img src="/assets/images/product-detail/02.jpg" alt="" className="img-fluid blur-up lazyload"/></div>
+                                    <div><img src="/assets/images/product-detail/03.jpg" alt="" className="img-fluid blur-up lazyload"/></div>
+                                    <div><img src="/assets/images/product-detail/01.jpg" alt="" className="img-fluid blur-up lazyload"/></div>
+                                    {/* <div><img src="/assets/images/product-detail/02.jpg" alt=""
+                                            className="img-fluid blur-up lazyload"/></div> */}
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div className="col-lg-6">
-                        <div className="product-details-content">
-                            <a className="wish-link" href="#">
-                                <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="heart" className="svg-inline--fa fa-heart fa-w-16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M462.3 62.6C407.5 15.9 326 24.3 275.7 76.2L256 96.5l-19.7-20.3C186.1 24.3 104.5 15.9 49.7 62.6c-62.8 53.6-66.1 149.8-9.9 207.9l193.5 199.8c12.5 12.9 32.8 12.9 45.3 0l193.5-199.8c56.3-58.1 53-154.3-9.8-207.9z"></path></svg>
-                            </a>
-                            <a href="#" className="cata">Catagory</a>
-                            <h2>Product Title Here</h2>
-                            <p className="quantity">1kg</p>
-                            <h3 className="price">$329 <del>$400</del></h3>
-                            <div className="price-increase-decrese-group d-flex">
-                                <span className="decrease-btn">
-                                    <button type="button" className="btn quantity-left-minus" data-type="minus" data-field="">-
-                                    </button> 
-                                </span>
-                                <input type="text" name="quantity" className="form-controls input-number" value="1"/>
-                                <span className="increase">
-                                    <button type="button" className="btn quantity-right-plus" data-type="plus" data-field="">+
-                                    </button>
-                                </span>
-                            </div>
-                            <p>Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penas et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem.</p>
-                            <div className="d-flex justify-content-end">
-                                <a href="#" className="buy-now">Buy Now</a>
-                            </div>
+                </div>
+                <div className="col-lg-6">
+                    <div className="product-details-content">
+                        <a className="wish-link" href="#">
+                            <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="heart" className="svg-inline--fa fa-heart fa-w-16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M462.3 62.6C407.5 15.9 326 24.3 275.7 76.2L256 96.5l-19.7-20.3C186.1 24.3 104.5 15.9 49.7 62.6c-62.8 53.6-66.1 149.8-9.9 207.9l193.5 199.8c12.5 12.9 32.8 12.9 45.3 0l193.5-199.8c56.3-58.1 53-154.3-9.8-207.9z"></path></svg>
+                        </a>
+                        <a href="#" className="cata">Catagory</a>
+                        <h2>Product Title Here</h2>
+                        <p className="quantity">1kg</p>
+                        <h3 className="price">$329 <del>$400</del></h3>
+                        <div className="price-increase-decrese-group d-flex">
+                            <span className="decrease-btn">
+                                <button type="button" className="btn quantity-left-minus" data-type="minus" data-field="">-
+                                </button> 
+                            </span>
+                            <input type="text" name="quantity" className="form-controls input-number" value="1"/>
+                            <span className="increase">
+                                <button type="button" className="btn quantity-right-plus" data-type="plus" data-field="">+
+                                </button>
+                            </span>
+                        </div>
+                        <p>Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penas et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem.</p>
+                        <div className="d-flex justify-content-end">
+                            <a href="#" className="buy-now">Buy Now</a>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </section>
-    {/* product-details-popup end */}
+    </div>
+</section>
+{/* product-details-popup end */}
 
 
 
-    {/* login-area */}
-    <section id="login-area" className="login-area">
-        <div onClick="CloseSignUpForm()" className="overlay"></div>
-        <div className="login-body-wrapper">
-            <div className="login-body">
-                <div className="close-icon" onClick="CloseSignUpForm()">
-                    <i className="fas fa-times"></i>
-                </div>
-                <div className="login-header">
-                    <h4>Create Your Account</h4>
-                    <p>Login with your email & password</p>
-                </div>
-                <div className="login-content">
-                    <form action="#" className="login-form">
-                        <input type="text" name="name" placeholder="Name"/>
-                        <input type="email" name="email" placeholder="Email"/>
-                        <button type="submit" className="submit">Sign Up</button>
+    {/* profile-edit form */}
+    <div className="profile-edit modal" id="edit-form1" tabIndex="-1" aria-labelledby="edit-form1" aria-hidden="true">
+        <div className="modal-dialog">
+            <div className="modal-content">
+                <div className="profile-edit-container">
+                    <div className="head text-center">
+                        <h4 className="title">Edit Your Profile</h4>
+                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas rutrum, <br/>augue sit amet ullamcorper mattis</p>
+                    </div>
+                    <form action="#" className="profile-form">
+                        <div className="row">
+                            <div className="col-md-6">
+                                <div className="input-item">
+                                    <label>Your Name</label>
+                                    <input type="text" name="name" placeholder="Jhone Doe"/>
+                                </div>
+                            </div>
+                    
+                            <div className="col-md-6">
+                                <div className="input-item">
+                                    <label>Your Email</label>
+                                    <input type="text" name="email" placeholder="jhondoe@gmail.com"/>
+                                </div>
+                            </div>
+                    
+                            <div className="col-md-6">
+                                <div className="input-item">
+                                    <label>Your Website</label>
+                                    <input type="text" name="website" placeholder="jhondoe.com"/>
+                                </div>
+                            </div>
+                    
+                            <div className="col-md-6">
+                                <div className="input-item">
+                                    <label>Your Mobile</label>
+                                    <input type="text" name="mobile" placeholder="0001111222"/>
+                                </div>
+                            </div>
+
+                            <div className="col-md-6">
+                                <div className="input-item">
+                                    <label>City</label>
+                                    <div className="flux-custom-select">
+                                        <select>
+                                          <option value="0">Alberta</option>
+                                          <option value="1">British Columbia</option>
+                                          <option value="2">Manitoba</option>
+                                          <option value="3">New Brunswick</option>
+                                          <option value="4">Nova Scotia</option>
+                                          <option value="5">Ontario</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="col-md-6">
+                                <div className="input-item">
+                                    <label>State</label>
+                                    <div className="flux-custom-select">
+                                        <select>
+                                          <option value="0">Nunavut</option>
+                                          <option value="1">Northwest Territories</option>
+                                          <option value="2"> Ontario</option>
+                                          <option value="3">British Columbia</option>
+                                          <option value="4">Nova Scotia</option>
+                                          <option value="5">Prince Edward Island</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="col-md-6">
+                                <div className="input-item">
+                                    <label>Zip Code</label>
+                                    <input type="text" name="zipcode" placeholder="94066"/>
+                                </div>
+                            </div>
+
+                            <div className="col-md-6">
+                                <div className="input-item">
+                                    <label>Country</label>
+                                    <div className="flux-custom-select">
+                                        <select>
+                                          <option value="0">Canada</option>
+                                          <option value="1">USA</option>
+                                          <option value="2"> UK</option>
+                                          <option value="3">Spain</option>
+                                          <option value="4">Italy</option>
+                                          <option value="5">Portgal</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="col-md-12">
+                                <div className="input-item">
+                                    <label>White About Your Self</label>
+                                    <textarea></textarea>
+                                </div>
+                            </div>
+                            <div className="col-md-12">
+                                <button type='submit' className="submit">Save</button>
+                                <button className="cencel" data-dismiss="modal">Cancel</button>
+                            </div>
+                        </div>
                     </form>
-                    <div className="text-center seperator">
-                        <span>Or</span>
-                    </div>
-                    <div className="othersignup-option">
-                        <a className="facebook" href="#"><i className="fab fa-facebook-square"></i>Continue with Facebook</a>
-                        <a className="google" href="#"><i className="fab fa-google-plus"></i>Continue with Google</a>
-                    </div>
-                    <div className="text-center dont-account py-4">
-                        <p className="mb-0">Don't have any account <a href="#">Sing Up</a></p>
-                    </div>
                 </div>
             </div>
-            <div className="forgot-password text-center">
-                <p>forgot Passowrd? <a href="#">Reset It</a></p>
-            </div>
         </div>
-    </section>
-    {/* login-area */}
+    </div>
+    {/* profile-edit form */}
 
 
-     {/* mobile-footer */}
-     <div className="mobile-footer d-flex justify-content-between align-items-center d-xl-none">
+
+    {/* mobile-footer */}
+    <div className="mobile-footer d-flex justify-content-between align-items-center d-xl-none">
         <button className="info" type="button" data-toggle="modal" data-target="#siteinfo1"><i className="fas fa-info-circle"></i></button>
 
         <div className="footer-cart">
@@ -910,6 +1326,9 @@ const Singin = () => {
         </div>
 
         <div className="footer-admin-area">
+            {/* <span className="user-admin">
+                <i className="fas fa-user"></i>
+            </span> */}
             <button className="user-admin" type="button" data-toggle="modal" data-target="#useradmin1"><i className="fas fa-user"></i></button>
         </div>
     </div>
@@ -917,7 +1336,7 @@ const Singin = () => {
     
 
 
-
+    
     
 
 <a href="#top-page" className="to-top js-scroll-trigger"><span><i className="fas fa-arrow-up"></i></span></a>
@@ -936,4 +1355,4 @@ const Singin = () => {
   );
 };
 
-export default Singin;
+export default Profile;

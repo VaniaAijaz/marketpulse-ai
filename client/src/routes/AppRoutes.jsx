@@ -18,6 +18,10 @@ import Settings from "../pages/dashboard/Settings";
 import WhatsApp from "../pages/dashboard/WhatsApp";
 import useAuthStore from "../store/useAuthStore";
 import { useShopsByOwner } from "../features/shops/shopHooks";
+import Contact from "@/pages/public/Contact";
+import HomeDefault from "@/pages/public/HomeDefault";
+import Profile from "@/pages/public/Profile";
+import ProductFullwidth from "@/pages/public/ProductFullwidth";
 
 // Redirect /dashboard/shops → active shop's detail page
 function ShopsRedirect() {
@@ -55,6 +59,10 @@ export default function AppRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+       <Route path="/home" element={<HomeDefault />} />
+      <Route path="/contact" element={<Contact />} />
+      <Route path="/profile" element={<Profile/>} />
+      <Route path="/products" element={<ProductFullwidth />} />
 
       {/* Protected Dashboard */}
       <Route
